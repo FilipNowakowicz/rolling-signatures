@@ -42,12 +42,19 @@ relations hold).
 
 The math is already solved (Lyons' group, 15+ years of rough-path-theory
 literature) and fast low-level compute libraries already exist
-(`iisignature`, `signax`, `esig`) — but they're bare tensor-algebra
-primitives with no finance framing and no drop-in usability. The gap this
-project fills is packaging: a transformer someone doing time-series ML for
-markets (e.g. entrants in Jane Street/Optiver-style Kaggle competitions) can
-import and use without first reading a rough-path-theory paper. Differentiator
-is "solved the packaging problem," not "solved the math problem."
+(`iisignature`, `RoughPy`, `signax`, `esig`) — bare tensor-algebra
+primitives with no finance framing. **Important honesty constraint:**
+`sktime` already ships a `SignatureTransformer` (Generalised Signature
+Method, Morrill et al. 2020), so "nobody packaged signatures" is false and
+must never be claimed. The real gap, which the README must state precisely:
+sktime targets panel classification (pre-segmented series → one vector);
+quant pipelines need *causal rolling-window features on a continuous
+stream* with strict no-lookahead alignment, finance-specific preprocessing
+defaults (lead-lag → quadratic variation), and O(1)-per-tick sliding-window
+updates via Chen's identity + the group inverse — which no high-level
+library exposes. Differentiator: "the missing middle layer between
+signature engines and quant practice," with the streaming engine as the
+genuine mathematical contribution (see `ROADMAP.md`).
 
 ## Relationship to `~/Projects/quant`
 
@@ -59,7 +66,9 @@ as independent CV evidence:
   different domain (derivatives pricing vs. time-series feature
   engineering). Left untouched.
 - `multi-asset-trend` — Carver-style multi-asset trend-following system.
-  This repo's benchmark harness (v0.1 in `ROADMAP.md`) reuses its data and
+  This repo's daily-bar benchmark (v0.4 in `ROADMAP.md` — the honest
+  secondary study; the headline benchmark is Optiver realized-vol data,
+  v0.2) reuses its data and
   its `src/backtest.py` / `src/metrics.py` causal-execution pattern as the
   target to beat — either as a dependency or a vendored/copied harness.
   Reuse the pattern, don't merge the repos.
