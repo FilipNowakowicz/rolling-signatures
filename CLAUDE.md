@@ -5,8 +5,9 @@ Guidance for Claude Code when working in this repository.
 ## Who this is for
 
 Filip Nowakowicz — Year 2 → Year 3 MSci Mathematics at Imperial College
-London (predicted First-Class Honours; 100% Groups & Rings, 98% Analysis).
-Applying for Quant Research internships (Jane Street, Citadel, HRT, IMC,
+London (predicted First-Class Honours; strong in pure maths, particularly
+Groups & Rings and Analysis). Applying for Quant Research internships
+(Jane Street, Citadel, HRT, IMC,
 Optiver) in Autumn 2026 for summer 2027. No work experience — projects are
 the main evidence base.
 
