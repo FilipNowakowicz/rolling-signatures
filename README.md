@@ -89,4 +89,4 @@ example will be added once there's a package to install.
 
 ## License
 
-[MIT](LICENSE)
+This project is licensed under the [MIT License](LICENSE).
