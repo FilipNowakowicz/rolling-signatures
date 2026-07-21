@@ -89,5 +89,4 @@ example will be added once there's a package to install.
 
 ## License
 
-MIT (planned — license file to be added alongside the first package
-release).
+[MIT](LICENSE)
