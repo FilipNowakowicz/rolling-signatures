@@ -1,0 +1,651 @@
+<title>sigtrade — Working Notes</title>
+<style>
+  :root {
+    --bg: #f5f6f7;
+    --bg-raised: #ffffff;
+    --ink: #1a1d23;
+    --ink-soft: #55606e;
+    --ink-faint: #838d99;
+    --accent: #2c4a6e;
+    --accent-soft: #dce6ee;
+    --verify: #a86423;
+    --verify-soft: #f3e4d3;
+    --rule: #d8dbdf;
+    --code-bg: #eef0f2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c;
+      --bg-raised: #1b1f26;
+      --ink: #e7e9ec;
+      --ink-soft: #9ca6b3;
+      --ink-faint: #6b7580;
+      --accent: #86b6d6;
+      --accent-soft: #223040;
+      --verify: #e0a164;
+      --verify-soft: #33261a;
+      --rule: #2a2f37;
+      --code-bg: #20242b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c;
+    --bg-raised: #1b1f26;
+    --ink: #e7e9ec;
+    --ink-soft: #9ca6b3;
+    --ink-faint: #6b7580;
+    --accent: #86b6d6;
+    --accent-soft: #223040;
+    --verify: #e0a164;
+    --verify-soft: #33261a;
+    --rule: #2a2f37;
+    --code-bg: #20242b;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f7;
+    --bg-raised: #ffffff;
+    --ink: #1a1d23;
+    --ink-soft: #55606e;
+    --ink-faint: #838d99;
+    --accent: #2c4a6e;
+    --accent-soft: #dce6ee;
+    --verify: #a86423;
+    --verify-soft: #f3e4d3;
+    --rule: #d8dbdf;
+    --code-bg: #eef0f2;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: ui-serif, "Iowan Old Style", "Palatino Linotype", "URW Palladio L", "Book Antiqua", Georgia, serif;
+    font-size: 17px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 4rem 1.5rem 6rem;
+  }
+
+  .page {
+    max-width: 40rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3.2rem;
+  }
+
+  header.masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding-bottom: 1.8rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .eyebrow {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  h1 {
+    font-size: 2.1rem;
+    line-height: 1.15;
+    margin: 0;
+    text-wrap: balance;
+    font-weight: 600;
+  }
+
+  .subtitle {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+
+  /* table of contents */
+  nav.toc {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1.1rem 1.4rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.88rem;
+  }
+  nav.toc .toc-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 600;
+    margin-bottom: 0.7rem;
+  }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  nav.toc > ol > li > a { font-weight: 600; color: var(--ink); }
+  nav.toc ol ol { margin-top: 0.35rem; padding-left: 1.2rem; gap: 0.3rem; }
+  nav.toc ol ol a { color: var(--ink-soft); font-weight: 400; }
+  nav.toc a { text-decoration: none; }
+  nav.toc a:hover { color: var(--accent); }
+  nav.toc .status {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    color: var(--verify);
+    margin-left: 0.5rem;
+  }
+
+  .chapter {
+    display: flex;
+    flex-direction: column;
+    gap: 1.8rem;
+  }
+
+  .chapter-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding-bottom: 0.6rem;
+  }
+  .chapter-head .eyebrow { color: var(--accent); }
+  h2.chapter-title {
+    font-size: 1.7rem;
+    margin: 0;
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    scroll-margin-top: 1.5rem;
+  }
+
+  h3 {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    font-size: 1.25rem;
+    margin: 0;
+    font-weight: 600;
+  }
+
+  h3 .sec-no {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    font-weight: 500;
+  }
+
+  p { margin: 0; max-width: 62ch; }
+
+  .figure {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    overflow-x: auto;
+  }
+
+  .figure svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+  .caption {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+
+  .eqn {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 2px;
+    padding: 0.9rem 1.2rem;
+    overflow-x: auto;
+  }
+  .eqn math { font-size: 1.15rem; }
+
+  .verified {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--verify);
+    background: var(--verify-soft);
+    border-radius: 3px;
+    padding: 0.15rem 0.5rem;
+    width: fit-content;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+  }
+  th, td {
+    text-align: right;
+    padding: 0.4rem 0.7rem;
+    border-bottom: 1px solid var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  th:first-child, td:first-child { text-align: left; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  th {
+    color: var(--ink-soft);
+    font-weight: 600;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg-raised); }
+  .tablewrap table { margin: 0; }
+  .tablewrap td, .tablewrap th { border-bottom: 1px solid var(--rule); }
+  .tablewrap tr:last-child td { border-bottom: none; }
+
+  code {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border-radius: 3px;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.88em;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 0.9rem 1.1rem;
+    overflow-x: auto;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; }
+  .bad code, .bad { color: var(--verify); }
+  .good code, .good { color: var(--ink); }
+
+  .note {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    background: var(--accent-soft);
+    border-radius: 4px;
+    padding: 0.8rem 1rem;
+  }
+  .note b { color: var(--ink); }
+
+  .bug {
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--verify);
+    border-radius: 2px;
+    padding: 0.9rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    background: var(--bg-raised);
+  }
+  .bug .bug-label {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--verify);
+    font-weight: 600;
+  }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.6rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+</style>
+
+<div class="page">
+
+<header class="masthead">
+  <span class="eyebrow">sigtrade &middot; working notes</span>
+  <h1>sigtrade — Working Notes</h1>
+  <span class="subtitle">A running record of the math and the build, in one place, extended chapter by chapter &mdash; last updated 23 July 2026</span>
+</header>
+
+<nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">Contents</div>
+  <ol>
+    <li><a href="#ch1">Chapter 1 &mdash; Path Signatures, Worked From a Live Example</a>
+      <ol>
+        <li><a href="#ch1-1">1.1 The path</a></li>
+        <li><a href="#ch1-2">1.2 What a signature is</a></li>
+        <li><a href="#ch1-3">1.3 Level 1 &mdash; net displacement</a></li>
+        <li><a href="#ch1-4">1.4 Level 2 &mdash; what it does and doesn't see</a></li>
+        <li><a href="#ch1-5">1.5 Lead-lag: recovering quadratic variation</a></li>
+        <li><a href="#ch1-6">1.6 The ring structure: Chen's identity</a></li>
+        <li><a href="#ch1-7">1.7 The dual structure: shuffle identity</a></li>
+        <li><a href="#ch1-8">1.8 Log-signature &mdash; not yet computed</a></li>
+        <li><a href="#ch1-9">1.9 Backend spike: iisignature vs RoughPy</a></li>
+      </ol>
+    </li>
+    <li><a href="#ch2">Chapter 2 &mdash; Building sigtrade v0.1</a><span class="status">9/9 tests, PR #25 open</span>
+      <ol>
+        <li><a href="#ch2-1">2.1 Package skeleton &amp; the narrow backend interface</a></li>
+        <li><a href="#ch2-2">2.2 SignatureTransformer: causal rolling windows</a></li>
+        <li><a href="#ch2-3">2.3 Two RoughPy bugs found while wiring it up</a></li>
+        <li><a href="#ch2-4">2.4 Where it stands</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+
+<div class="chapter" id="ch1">
+<div class="chapter-head">
+  <span class="eyebrow">Chapter 1</span>
+  <h2 class="chapter-title">Path Signatures, Worked From a Live Example</h2>
+</div>
+
+<section id="ch1-1">
+  <h3><span class="sec-no">1.1</span> The path</h3>
+  <p>Everything below refers to one concrete object: a 10-point, 2-dimensional random walk (cumulative sum of Gaussian steps, seed 0), read as a piecewise-linear path <math><mi>X</mi><mo>:</mo><mo>[</mo><mn>0</mn><mo>,</mo><mi>T</mi><mo>]</mo><mo>&rarr;</mo><msup><mi>&#x211d;</mi><mn>2</mn></msup></math>.</p>
+  <div class="figure">
+    <svg viewBox="0 0 400 240" width="400" height="240">
+      <polygon points="63.00,188.65 102.15,99.01 176.85,138.11 214.85,144.16 210.72,127.74 216.49,69.57 246.93,64.70 264.68,51.35 324.44,59.56 336.97,93.72"
+        fill="var(--accent)" opacity="0.09" stroke="none"/>
+      <line x1="63.00" y1="188.65" x2="336.97" y2="93.72" stroke="var(--ink-faint)" stroke-width="1" stroke-dasharray="3,3"/>
+      <polyline points="63.00,188.65 102.15,99.01 176.85,138.11 214.85,144.16 210.72,127.74 216.49,69.57 246.93,64.70 264.68,51.35 324.44,59.56 336.97,93.72"
+        fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="63.00" cy="188.65" r="4.5" fill="var(--bg-raised)" stroke="var(--accent)" stroke-width="2"/>
+      <circle cx="336.97" cy="93.72" r="4" fill="var(--accent)"/>
+      <text x="63.00" y="205" font-size="10" fill="var(--ink-faint)" font-family="ui-monospace, monospace" text-anchor="middle">X&#8320;</text>
+      <text x="336.97" y="112" font-size="10" fill="var(--ink-faint)" font-family="ui-monospace, monospace" text-anchor="middle">X&#7451;</text>
+    </svg>
+    <span class="caption">The path (solid), the chord from X&#8320; to X&#7451; (dashed), and the region between them &mdash; the geometric picture behind the Lévy area in &sect;1.4.</span>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>k</th><th>x&#x2081;</th><th>x&#x2082;</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>1.7641</td><td>0.4002</td></tr>
+        <tr><td>1</td><td>2.7428</td><td>2.6411</td></tr>
+        <tr><td>2</td><td>4.6103</td><td>1.6638</td></tr>
+        <tr><td>3</td><td>5.5604</td><td>1.5124</td></tr>
+        <tr><td>4</td><td>5.4572</td><td>1.9230</td></tr>
+        <tr><td>5</td><td>5.6013</td><td>3.3773</td></tr>
+        <tr><td>6</td><td>6.3623</td><td>3.4990</td></tr>
+        <tr><td>7</td><td>6.8062</td><td>3.8326</td></tr>
+        <tr><td>8</td><td>8.3002</td><td>3.6275</td></tr>
+        <tr><td>9</td><td>8.6133</td><td>2.7734</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="ch1-2">
+  <h3><span class="sec-no">1.2</span> What a signature is</h3>
+  <p>For a word <math><mi>i</mi><mn>1</mn><mo>&#8942;</mo><mi>i</mi><mi>m</mi></math> over the alphabet <math><mo>{</mo><mn>1</mn><mo>,</mo><mn>2</mn><mo>}</mo></math> (one letter per path dimension), the corresponding signature entry is an iterated integral:</p>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <msup><mi>S</mi><mrow><msub><mi>i</mi><mn>1</mn></msub><mo>&#8942;</mo><msub><mi>i</mi><mi>m</mi></msub></mrow></msup>
+        <mo>=</mo>
+        <msub><mo>&#8747;</mo><mrow><mn>0</mn><mo>&lt;</mo><msub><mi>t</mi><mn>1</mn></msub><mo>&lt;</mo><mo>&#8942;</mo><mo>&lt;</mo><msub><mi>t</mi><mi>m</mi></msub><mo>&lt;</mo><mi>T</mi></mrow></msub>
+        <mi>d</mi><msubsup><mi>X</mi><msub><mi>t</mi><mn>1</mn></msub><msub><mi>i</mi><mn>1</mn></msub></msubsup>
+        <mo>&#8942;</mo>
+        <mi>d</mi><msubsup><mi>X</mi><msub><mi>t</mi><mi>m</mi></msub><msub><mi>i</mi><mi>m</mi></msub></msubsup>
+      </mrow>
+    </math>
+  </div>
+  <p>Depth-<i>k</i> truncation keeps every word up to length <i>k</i>. For a 2-dimensional path that's <math><mn>2</mn><mo>+</mo><mn>4</mn><mo>+</mo><mn>8</mn><mo>=</mo><mn>14</mn></math> numbers at depth 3 &mdash; exactly what <code>iisignature.sig(path, 3)</code> returned. The empty word gets coefficient 1 always &mdash; it's the identity element, which is why RoughPy prints its signature starting with <code>1()</code>.</p>
+</section>
+
+<section id="ch1-3">
+  <h3><span class="sec-no">1.3</span> Level 1 &mdash; net displacement</h3>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <msup><mi>S</mi><mi>i</mi></msup>
+        <mo>=</mo>
+        <msubsup><mo>&#8747;</mo><mn>0</mn><mi>T</mi></msubsup>
+        <mi>d</mi><msubsup><mi>X</mi><mi>t</mi><mi>i</mi></msubsup>
+        <mo>=</mo>
+        <msubsup><mi>X</mi><mi>T</mi><mi>i</mi></msubsup>
+        <mo>&minus;</mo>
+        <msubsup><mi>X</mi><mn>0</mn><mi>i</mi></msubsup>
+      </mrow>
+    </math>
+  </div>
+  <span class="verified">&#10003; verified numerically</span>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>coordinate 1</th><th>coordinate 2</th></tr></thead>
+      <tbody>
+        <tr><td>X&#7451; &minus; X&#8320;</td><td>6.849257</td><td>2.373225</td></tr>
+        <tr><td>S&#185; (from <code>iisignature.sig</code>)</td><td>6.849257</td><td>2.373225</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="ch1-4">
+  <h3><span class="sec-no">1.4</span> Level 2 &mdash; what it does and doesn't see</h3>
+  <p>Split into symmetric and antisymmetric parts. The symmetric (diagonal) part turns out to be exactly determined by level 1 &mdash; a pure calculus identity, true for <i>any</i> 1-d path regardless of how much it oscillates:</p>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <msup><mi>S</mi><mrow><mi>i</mi><mi>i</mi></mrow></msup>
+        <mo>=</mo>
+        <mfrac><mn>1</mn><mn>2</mn></mfrac>
+        <msup><mrow><mo>(</mo><msup><mi>S</mi><mi>i</mi></msup><mo>)</mo></mrow><mn>2</mn></msup>
+      </mrow>
+    </math>
+  </div>
+  <span class="verified">&#10003; verified numerically</span>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>value</th></tr></thead>
+      <tbody>
+        <tr><td>&frac12;(S&#185;)&sup2;</td><td>23.456160</td></tr>
+        <tr><td>S&#185;&#185; (diagonal, from signature)</td><td>23.456160</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">The diagonal level-2 term of the <b>raw</b> path is provably redundant with level 1 &mdash; it carries <b>zero</b> additional information, at any sampling resolution. It does <b>not</b>, by itself, capture realized variance. Getting quadratic variation out of signatures needs the mechanism in &sect;1.5.</div>
+  <p>The antisymmetric part is the Lévy area &mdash; signed area swept between the path and the chord shown in &sect;1.1 &mdash; and it's genuinely new information: it depends on the <i>order</i> in which the two coordinates moved, which the level-1 and diagonal level-2 terms cannot see.</p>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <mn>2</mn><mo>&times;</mo><mtext>Lévy area</mtext>
+        <mo>=</mo>
+        <msup><mi>S</mi><mrow><mn>1</mn><mn>2</mn></mrow></msup>
+        <mo>&minus;</mo>
+        <msup><mi>S</mi><mrow><mn>2</mn><mn>1</mn></mrow></msup>
+        <mo>=</mo>
+        <mn>0.9557</mn><mo>&minus;</mo><mn>15.2991</mn>
+        <mo>=</mo>
+        <mn>&minus;14.3434</mn>
+      </mrow>
+    </math>
+  </div>
+</section>
+
+<section id="ch1-5">
+  <h3><span class="sec-no">1.5</span> Lead-lag: how quadratic variation actually shows up</h3>
+  <p>The Gyurkó&ndash;Lyons construction pairs a coordinate with a one-tick-delayed copy of itself, doubling the resolution: <math><mover><mi>X</mi><mo>^</mo></mover></math> (lead) steps to the next value first; <math><mover><mi>X</mi><mo>&#711;</mo></mover></math> (lag) holds, then catches up. On this 2D (lead, lag) path, the antisymmetric cross-term is an <i>exact</i> identity, not an approximation:</p>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <msup><mi>S</mi><mrow><mtext>lead</mtext><mo>,</mo><mtext>lag</mtext></mrow></msup>
+        <mo>&minus;</mo>
+        <msup><mi>S</mi><mrow><mtext>lag</mtext><mo>,</mo><mtext>lead</mtext></mrow></msup>
+        <mo>=</mo>
+        <munder><mo>&sum;</mo><mi>k</mi></munder>
+        <msup><mrow><mo>(</mo><mi>&Delta;</mi><msub><mi>x</mi><mi>k</mi></msub><mo>)</mo></mrow><mn>2</mn></msup>
+      </mrow>
+    </math>
+  </div>
+  <span class="verified">&#10003; verified numerically &mdash; exact to 12 significant figures</span>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>value</th></tr></thead>
+      <tbody>
+        <tr><td>realized &sum;(&Delta;x&#8321;)&sup2;</td><td>8.48624822212359</td></tr>
+        <tr><td>S<sup>(lead,lag)</sup> &minus; S<sup>(lag,lead)</sup></td><td>8.48624822212359<b>2</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>This is the mechanism behind the roadmap's claim that lead-lag preprocessing recovers quadratic variation &mdash; and it's exact, not asymptotic, which is a much stronger thing to be able to say in an interview than "signatures relate to volatility."</p>
+</section>
+
+<section id="ch1-6">
+  <h3><span class="sec-no">1.6</span> The ring structure: Chen's identity</h3>
+  <p>The signature lives in the tensor algebra <math><mi>T</mi><mo>((</mo><mi>V</mi><mo>))</mo><mo>=</mo><munderover><mo>&#10753;</mo><mrow><mi>m</mi><mo>=</mo><mn>0</mn></mrow><mi>&infin;</mi></munderover><msup><mi>V</mi><mrow><mo>&otimes;</mo><mi>m</mi></mrow></msup></math> &mdash; the free associative algebra on <math><mi>V</mi><mo>=</mo><msup><mi>&#x211d;</mi><mn>2</mn></msup></math>. Concatenating path segments is the ring product of their signatures:</p>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <mi>S</mi><mo>(</mo><mi>X</mi><mo>&lowast;</mo><mi>Y</mi><mo>)</mo>
+        <mo>=</mo>
+        <mi>S</mi><mo>(</mo><mi>X</mi><mo>)</mo><mo>&otimes;</mo><mi>S</mi><mo>(</mo><mi>Y</mi><mo>)</mo>
+      </mrow>
+    </math>
+  </div>
+  <span class="verified">&#10003; verified numerically &mdash; <code>iisignature.sigcombine</code></span>
+  <p>Split the path at index 5 into two halves, compute each signature separately, combine them via the tensor product &mdash; the result matches the whole-path signature to <code>8.8&times;10&#8315;&#8311;</code> (floating-point noise). This is the identity that makes signatures <b>grouplike</b>: they form a group under this product (identity = the level-0 term, inverse = the signature of the time-reversed path). It's exactly what a streaming/rolling-window update needs &mdash; drop the oldest segment by left-multiplying its group inverse, append the new one by right-multiplying &mdash; O(1) amortized per tick instead of recomputing the whole window (v0.3 on the roadmap).</p>
+</section>
+
+<section id="ch1-7">
+  <h3><span class="sec-no">1.7</span> The dual structure: shuffle identity</h3>
+  <p>The <i>ordinary scalar product</i> of two signature entries equals a sum over interleavings (shuffles) of the two words &mdash; the commutative Hopf algebra dual to the concatenation product above:</p>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <msup><mi>S</mi><mi>u</mi></msup><mo>&sdot;</mo><msup><mi>S</mi><mi>v</mi></msup>
+        <mo>=</mo>
+        <munder><mo>&sum;</mo><mrow><mi>w</mi><mo>&isin;</mo><mi>u</mi><mo>&#10786;</mo><mi>v</mi></mrow></munder>
+        <msup><mi>S</mi><mi>w</mi></msup>
+      </mrow>
+    </math>
+  </div>
+  <span class="verified">&#10003; verified numerically</span>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>identity</th><th>LHS</th><th>RHS</th></tr></thead>
+      <tbody>
+        <tr><td>S&#185;&middot;S&sup2; = S&#185;&sup2;+S&sup2;&#185;</td><td>16.254831</td><td>16.254831</td></tr>
+        <tr><td>(S&#185;)&sup2; = 2&middot;S&#185;&#185;</td><td>46.912319</td><td>46.912319</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>This is the correctness oracle for any signature implementation, including the pure-numpy reference the roadmap calls for &mdash; a much stronger test than "looks about right," and it's a check that has to hold on <i>every</i> random path, not just this one. It's exactly what <code>tests/test_backend.py</code> in Chapter 2 turns into an automated regression test.</p>
+</section>
+
+<section id="ch1-8">
+  <h3><span class="sec-no">1.8</span> Log-signature &mdash; not yet computed</h3>
+  <p>Because a signature is grouplike, its logarithm (via the tensor algebra's own exp/log) is <i>primitive</i>, and primitives of this Hopf algebra are exactly the free Lie algebra on <math><mi>V</mi></math>:</p>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <mi>log</mi><mo>&#x2061;</mo><mi>S</mi><mo>(</mo><mi>X</mi><mo>)</mo>
+        <mo>&isin;</mo>
+        <mtext>Lie</mtext><mo>(</mo><mi>V</mi><mo>)</mo>
+        <mo>&sub;</mo>
+        <mi>T</mi><mo>((</mo><mi>V</mi><mo>))</mo>
+      </mrow>
+    </math>
+  </div>
+  <p>This is PBW-theorem territory: the Lyndon-word basis of the free Lie algebra gives a far smaller, information-lossless basis than the full tensor words. Flagged for a future chapter &mdash; not computed yet, so no verified badge.</p>
+</section>
+
+<section id="ch1-9">
+  <h3><span class="sec-no">1.9</span> Backend spike: iisignature vs RoughPy</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>iisignature 0.24</th><th>RoughPy 0.3.0</th></tr></thead>
+      <tbody>
+        <tr><td>cp314 wheel on PyPI</td><td>none &mdash; source build</td><td>yes, prebuilt</td></tr>
+        <tr><td>build needed manual fix</td><td>yes (numpy + --no-build-isolation)</td><td>no</td></tr>
+        <tr><td>maintenance</td><td>low (last dep. update 0.24)</td><td>active, Lyons-lab</td></tr>
+        <tr><td>API</td><td>simple, flat arrays</td><td>richer, more ceremony</td></tr>
+        <tr><td>agreement with other backend</td><td colspan="2">max abs diff 4.6&times;10&#8315;&#8309; at the time (see &sect;2.3 &mdash; this was a bug in the wrapper, not the backend)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Both computed the same signature. RoughPy became the default given wheel availability and maintenance status; <code>iisignature</code> stays available behind the same narrow interface as a cross-check / reference during testing.</p>
+</section>
+</div>
+
+<div class="chapter" id="ch2">
+<div class="chapter-head">
+  <span class="eyebrow">Chapter 2</span>
+  <h2 class="chapter-title">Building sigtrade v0.1</h2>
+</div>
+
+<section id="ch2-1">
+  <h3><span class="sec-no">2.1</span> Package skeleton &amp; the narrow backend interface</h3>
+  <p><code>src/sigtrade/_backend.py</code> is the only file that imports RoughPy or <code>iisignature</code> directly. Everything else calls one function:</p>
+  <pre><code>signature(path: np.ndarray, depth: int, backend: Backend = "roughpy") -&gt; np.ndarray</code></pre>
+  <p>which returns a flat array of levels 1..depth in lexicographic word order &mdash; the same layout <code>iisignature.sig</code> already uses, so both backends are drop-in interchangeable and every identity from Chapter 1 works unchanged as a test on either one. The point of isolating this in one narrow file: the moment a better backend appears (or RoughPy's API shifts again), only <code>_backend.py</code> changes &mdash; not the transformer, not the tests.</p>
+</section>
+
+<section id="ch2-2">
+  <h3><span class="sec-no">2.2</span> SignatureTransformer: causal rolling windows</h3>
+  <p><code>src/sigtrade/transformer.py</code> is a normal sklearn <code>fit</code>/<code>transform</code> estimator. The entire causality guarantee comes down to one line in <code>transform</code>:</p>
+  <pre><code>for t in range(n_samples):
+    start = max(0, t + 1 - self.window)
+    out[t] = signature(X[start : t + 1], self.depth, backend=self.backend)</code></pre>
+  <p>Row <i>t</i> is built only from <code>X[start : t+1]</code> &mdash; data up to and including <i>t</i>, never beyond it. This loops per-timestep and recomputes each window's signature from scratch (O(window) per tick) rather than vectorizing or reusing the previous window's result &mdash; deliberate for v0.1: the O(1)-per-tick version is exactly Chen's identity from &sect;1.6 (drop the departing segment via its group inverse, append the new one), and that's scoped as its own later chapter, not smuggled in early.</p>
+  <div class="note">The proof that this is actually causal isn't a code-review argument, it's a test: <code>test_causal_alignment</code> in <code>tests/test_transformer.py</code> fits the transformer on a truncated prefix <code>series[:t+1]</code> and asserts the last row matches the row at index <i>t</i> from fitting on the full series. If any future change introduced lookahead, this test would catch it.</div>
+</section>
+
+<section id="ch2-3">
+  <h3><span class="sec-no">2.3</span> Two RoughPy bugs found while wiring it up</h3>
+  <p>Both are silent &mdash; no exception, no warning, just a wrong number &mdash; which is the dangerous kind.</p>
+  <div class="bug">
+    <span class="bug-label">Bug 1 &middot; precision truncated by string conversion</span>
+    <p>RoughPy's <code>Scalar</code> doesn't support <code>float()</code> directly. The obvious workaround, going through its pretty-printed string, quietly rounds to display precision:</p>
+    <pre><code class="bad">float(str(sig[tensor_key]))   <span style="color:var(--ink-faint)">#  6.849256... becomes 6.84926</span></code></pre>
+    <pre><code class="good">sig[tensor_key].to_float()    <span style="color:var(--ink-faint)">#  full float64 precision</span></code></pre>
+    <p>This alone explained the entire ~4.6&times;10&#8315;&#8309; "backend disagreement" reported in &sect;1.9 &mdash; it wasn't RoughPy vs iisignature disagreeing, it was <code>str()</code> lying.</p>
+  </div>
+  <div class="bug">
+    <span class="bug-label">Bug 2 &middot; ctx= mis-indexes repeated-letter words</span>
+    <p>Building a <code>TensorKey</code> from a shared context object gives the <i>wrong value</i> for words like <code>(1,1)</code> &mdash; it silently returns a different entry's value, with a correctly-labelled repr that makes the bug easy to miss on a quick print:</p>
+    <pre><code class="bad">rp.TensorKey([1, 1], ctx=ctx)          <span style="color:var(--ink-faint)"># prints "(1,1)" but reads back S² 's value</span></code></pre>
+    <pre><code class="good">rp.TensorKey([1, 1], width=2, depth=3) <span style="color:var(--ink-faint)"># correct, and doesn't itself warn</span></code></pre>
+    <p>Caught only because &sect;1.4's diagonal identity (S&#185;&#185; = &frac12;(S&#185;)&sup2;) failed in the test suite &mdash; another point for treating the algebraic identities as tests rather than assertions.</p>
+  </div>
+</section>
+
+<section id="ch2-4">
+  <h3><span class="sec-no">2.4</span> Where it stands</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>status</th></tr></thead>
+      <tbody>
+        <tr><td>tests</td><td>9/9 passing (<code>tests/test_backend.py</code>, <code>tests/test_transformer.py</code>)</td></tr>
+        <tr><td>backend agreement</td><td>1&times;10&#8315;&#8312; after the fixes &mdash; true float64 precision, not a coincidence</td></tr>
+        <tr><td>PR</td><td><code>v0.1-signature-transformer-skeleton</code> &rarr; PR #25, open</td></tr>
+        <tr><td>not yet built</td><td>lead-lag / time-augmentation preprocessing, pure-numpy reference, hypothesis property tests, CI</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+</div>
+
+<footer>
+  <span>Generated from live Python sessions (Python 3.14.6, NixOS + <code>steam-run</code> for manylinux wheel compatibility). Redeployed to this same URL as chapters are added &mdash; not a static snapshot.</span>
+  <span>Relationship to the repo: this page is the working draft; <code>docs/math.md</code> (ROADMAP.md v0.1) will get a distilled version once the math settles.</span>
+</footer>
+
+</div>
