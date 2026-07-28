@@ -7,6 +7,7 @@ from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 
 from sigtrade._backend import (
+    _log_signature_expanded,
     _log_signature_full_numpy,
     _words,
     log_signature,
@@ -154,6 +155,48 @@ def test_log_signature_short_path_is_zero():
 def test_log_signature_rejects_unknown_backend(path):
     with pytest.raises(ValueError):
         log_signature(path, depth=2, backend="numpy")
+
+
+@pytest.mark.parametrize("backend", ["roughpy", "iisignature"])
+def test_log_signature_backends_expand_to_the_numpy_oracle(path, backend):
+    """Both backends really do return log-signatures.
+
+    Each one's coordinates live in its own basis of the free Lie algebra, so
+    they can't be compared elementwise. Expanding both back into canonical
+    tensor-word coordinates gives common ground -- and there they must agree
+    with the numpy oracle, which computes log(S) as a power series with no
+    basis involved at all.
+    """
+    pytest.importorskip(backend)
+    expanded = _log_signature_expanded(path, depth=3, backend=backend)
+    assert expanded == pytest.approx(_log_signature_full_numpy(path, depth=3), abs=1e-8)
+
+
+def test_log_signature_backends_disagree_from_level_three(path):
+    """A regression test on a known, documented incompatibility.
+
+    roughpy and iisignature agree through level 2 but order and sign their
+    level-3 brackets differently (docs/notes-orvp.html s6.2). This is not a
+    bug to be fixed; it's a constraint the benchmark has to respect -- fit
+    and predict must use the same backend. If a future version of either
+    library silently changed convention, this test would catch it.
+    """
+    pytest.importorskip("iisignature")
+    dim, depth = path.shape[1], 3
+    rp = log_signature(path, depth=depth, backend="roughpy")
+    ii = log_signature(path, depth=depth, backend="iisignature")
+    through_level_two = dim + n_log_features(dim, 2) - dim
+    assert rp[:through_level_two] == pytest.approx(ii[:through_level_two], abs=1e-8)
+    assert rp[through_level_two:] != pytest.approx(ii[through_level_two:], abs=1e-8)
+
+
+def test_log_signature_iisignature_labels_match_feature_count(path):
+    from sigtrade._backend import _log_labels_iisignature
+
+    pytest.importorskip("iisignature")
+    labels = _log_labels_iisignature(path.shape[1], 3)
+    assert len(labels) == n_log_features(path.shape[1], 3)
+    assert labels[: path.shape[1]] == [str(i) for i in range(1, path.shape[1] + 1)]
 
 
 def test_log_signature_matches_bracket_expansion_of_full_tensor_log(path):

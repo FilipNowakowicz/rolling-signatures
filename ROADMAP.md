@@ -82,30 +82,50 @@ quadratic variation), and the Optiver Realized Volatility Prediction
 dataset gives real order-book paths, a fixed public metric (RMSPE), and
 published top-solution baselines to reproduce and compare against.
 
-- [ ] Data pipeline for the Kaggle ORVP dataset (book/trade parquet).
-- [ ] Baselines: naive last-window RV, HAR-RV-style features, and a
+- [x] Data pipeline for the Kaggle ORVP dataset (book/trade parquet).
+      `benchmarks/orvp/data.py`; the downloader fetches only the stock
+      subset the benchmark evaluates on rather than the full archive.
+- [x] Baselines: naive last-window RV, HAR-RV-style features, and a
       reproduced top-solution-style feature set (e.g. WAP/spread/imbalance
       aggregates + GBM), same model class and CV for all arms.
-- [ ] Signature arm: `sigtrade` features (lead-lag + time-augmented WAP
+- [x] Signature arm: `sigtrade` features (lead-lag + time-augmented WAP
       paths, log-signatures) into the same model class. Report marginal
       value: baseline vs signatures-only vs baseline+signatures.
-- [ ] Strict walk-forward / grouped CV (no time leakage across time_ids).
-- [ ] Honesty constraint: the official private LB was re-run on future
-      market data — never claim "would have ranked Nth." Claim: "on the
-      competition dataset, with the competition metric, under walk-forward
-      CV, signatures improved/didn't improve RMSPE by X% over reproduced
-      baselines." Report the negative if it's negative.
-- [ ] Truncation-depth × window-length study on this task (features grow
+- [x] ~~Strict walk-forward~~ / grouped CV (no time leakage across
+      time_ids). **Walk-forward is not achievable on this dataset** and
+      that is now a documented finding rather than an open task: the
+      organisers shuffled `time_id` and shipped no timestamps, so no
+      chronological order is recoverable. Grouped CV on `time_id` closes
+      the leak that actually dominates here — a `time_id` is one instant of
+      market time across all 112 stocks, and volatility is strongly
+      correlated cross-sectionally. Reported as a limitation in the README,
+      `benchmarks/orvp/README.md` and `docs/notes-orvp.html` §7.3.
+- [x] Honesty constraint: the official private LB was re-run on future
+      market data — never claim "would have ranked Nth." **The result is
+      negative and is reported as such**: on the competition training data,
+      with the competition metric, under grouped CV with a fixed shared
+      learner, adding depth-3 log-signatures to the best reproduced
+      baseline moved RMSPE from 0.23093 to 0.23133 — 0.17% *worse*, and
+      consistently so under a group bootstrap. Signatures alone reach
+      0.24362 against the HAR-RV set's 0.24075. Caveat stated alongside it:
+      the signature arm saw only the WAP path, while the winning baseline
+      saw order-book state, so this bounds *price-path* signatures, not
+      signatures as such.
+- [x] Truncation-depth × window-length study on this task (features grow
       exponentially in depth; find where held-out performance turns over).
       This replaces the old standalone v0.2 — it's better as part of a real
-      task than in the abstract.
-- [ ] README: positioning (incl. sktime comparison), quickstart, math
-      summary linking `docs/math.md`, benchmark table with the honest
-      numbers. → **CV bullet.**
+      task than in the abstract. `benchmarks/orvp/study.py`.
+- [x] README: positioning (incl. sktime comparison), quickstart, math
+      summary linking the write-up (`docs/notes.html` +
+      `docs/notes-orvp.html`, not a separate `docs/math.md` — see §5.2),
+      benchmark table with the honest numbers. → **CV bullet.**
 - [ ] Distribution: publish a clean Kaggle notebook using `sigtrade` on the
       ORVP dataset. That notebook is the discovery channel — it reaches
       exactly the people who'd use the package. Target one genuine external
-      user, not a star count.
+      user, not a star count. **Written and committed**
+      (`notebooks/orvp-signature-features.ipynb`); publishing is still open
+      — it needs the repo public and, for the `pip install` line to work
+      for anyone else, ideally the deferred PyPI release.
 
 ## v0.3 — streaming engine (Sept–Oct, interview-season depth)
 

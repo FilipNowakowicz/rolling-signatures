@@ -5,3 +5,11 @@ __pycache__/
 .venv/
 build/
 dist/
+.hypothesis/
+# ORVP competition data and derived feature caches -- gigabytes, and the
+# competition's terms cover redistribution. `benchmarks/orvp/results/` is
+# deliberately NOT ignored: the numbers are the deliverable.
+data/
+# Out-of-fold predictions: several MB, and regenerable by rerunning the
+# benchmark. Kept out of the repo; the scores derived from them are in.
+benchmarks/orvp/results/*.npz

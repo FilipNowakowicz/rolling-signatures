@@ -1,0 +1,579 @@
+<title>sigtrade — Working Notes, Part II: The Benchmark</title>
+<style>
+  :root {
+    --bg: #f5f6f7;
+    --bg-raised: #ffffff;
+    --ink: #1a1d23;
+    --ink-soft: #55606e;
+    --ink-faint: #838d99;
+    --accent: #2c4a6e;
+    --accent-soft: #dce6ee;
+    --verify: #a86423;
+    --verify-soft: #f3e4d3;
+    --rule: #d8dbdf;
+    --code-bg: #eef0f2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c;
+      --bg-raised: #1b1f26;
+      --ink: #e7e9ec;
+      --ink-soft: #9ca6b3;
+      --ink-faint: #6b7580;
+      --accent: #86b6d6;
+      --accent-soft: #223040;
+      --verify: #e0a164;
+      --verify-soft: #33261a;
+      --rule: #2a2f37;
+      --code-bg: #20242b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c;
+    --bg-raised: #1b1f26;
+    --ink: #e7e9ec;
+    --ink-soft: #9ca6b3;
+    --ink-faint: #6b7580;
+    --accent: #86b6d6;
+    --accent-soft: #223040;
+    --verify: #e0a164;
+    --verify-soft: #33261a;
+    --rule: #2a2f37;
+    --code-bg: #20242b;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f7;
+    --bg-raised: #ffffff;
+    --ink: #1a1d23;
+    --ink-soft: #55606e;
+    --ink-faint: #838d99;
+    --accent: #2c4a6e;
+    --accent-soft: #dce6ee;
+    --verify: #a86423;
+    --verify-soft: #f3e4d3;
+    --rule: #d8dbdf;
+    --code-bg: #eef0f2;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: ui-serif, "Iowan Old Style", "Palatino Linotype", "URW Palladio L", "Book Antiqua", Georgia, serif;
+    font-size: 17px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 4rem 1.5rem 6rem;
+  }
+
+  .page {
+    max-width: 40rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3.2rem;
+  }
+
+  header.masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding-bottom: 1.8rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .eyebrow {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  h1 {
+    font-size: 2.1rem;
+    line-height: 1.15;
+    margin: 0;
+    text-wrap: balance;
+    font-weight: 600;
+  }
+
+  .subtitle {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+
+  /* table of contents */
+  nav.toc {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1.1rem 1.4rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.88rem;
+  }
+  nav.toc .toc-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 600;
+    margin-bottom: 0.7rem;
+  }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  nav.toc > ol > li > a { font-weight: 600; color: var(--ink); }
+  nav.toc ol ol { margin-top: 0.35rem; padding-left: 1.2rem; gap: 0.3rem; }
+  nav.toc ol ol a { color: var(--ink-soft); font-weight: 400; }
+  nav.toc a { text-decoration: none; }
+  nav.toc a:hover { color: var(--accent); }
+  nav.toc .status {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    color: var(--verify);
+    margin-left: 0.5rem;
+  }
+
+  .chapter {
+    display: flex;
+    flex-direction: column;
+    gap: 1.8rem;
+  }
+
+  .chapter-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding-bottom: 0.6rem;
+  }
+  .chapter-head .eyebrow { color: var(--accent); }
+  h2.chapter-title {
+    font-size: 1.7rem;
+    margin: 0;
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    scroll-margin-top: 1.5rem;
+  }
+
+  h3 {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    font-size: 1.25rem;
+    margin: 0;
+    font-weight: 600;
+  }
+
+  h3 .sec-no {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    font-weight: 500;
+  }
+
+  p { margin: 0; max-width: 62ch; }
+
+  .figure {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    overflow-x: auto;
+  }
+
+  .figure svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+  .caption {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+
+  .eqn {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 2px;
+    padding: 0.9rem 1.2rem;
+    overflow-x: auto;
+  }
+  .eqn math { font-size: 1.15rem; }
+
+  .verified {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--verify);
+    background: var(--verify-soft);
+    border-radius: 3px;
+    padding: 0.15rem 0.5rem;
+    width: fit-content;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+  }
+  th, td {
+    text-align: right;
+    padding: 0.4rem 0.7rem;
+    border-bottom: 1px solid var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  th:first-child, td:first-child { text-align: left; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  th {
+    color: var(--ink-soft);
+    font-weight: 600;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg-raised); }
+  .tablewrap table { margin: 0; }
+  .tablewrap td, .tablewrap th { border-bottom: 1px solid var(--rule); }
+  .tablewrap tr:last-child td { border-bottom: none; }
+
+  code {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border-radius: 3px;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.88em;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 0.9rem 1.1rem;
+    overflow-x: auto;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; }
+  .bad code, .bad { color: var(--verify); }
+  .good code, .good { color: var(--ink); }
+
+  .note {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    background: var(--accent-soft);
+    border-radius: 4px;
+    padding: 0.8rem 1rem;
+  }
+  .note b { color: var(--ink); }
+
+  .bug {
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--verify);
+    border-radius: 2px;
+    padding: 0.9rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    background: var(--bg-raised);
+  }
+  .bug .bug-label {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--verify);
+    font-weight: 600;
+  }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.6rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+</style>
+
+<div class="page">
+
+<header class="masthead">
+  <span class="eyebrow">sigtrade &middot; working notes &middot; part II</span>
+  <h1>The Benchmark</h1>
+  <span class="subtitle">Part II of the working notes &mdash; v0.2, the Optiver realized-volatility study. Part I (the algebra, and building v0.1) is in <code>docs/notes.html</code>. Last updated 28 July 2026.</span>
+</header>
+
+<nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">Contents &mdash; continuing from Part I &sect;5.3</div>
+  <ol>
+    <li><a href="#ch6">Chapter 6 &mdash; Picking the Fight</a>
+      <ol>
+        <li><a href="#ch6-1">6.1 Why realized volatility is the sharpest possible test</a></li>
+        <li><a href="#ch6-2">6.2 Two backends, two bases</a></li>
+        <li><a href="#ch6-3">6.3 An irregular stream, and why forward-filling is free</a></li>
+      </ol>
+    </li>
+    <li><a href="#ch7">Chapter 7 &mdash; Designing a Comparison That Can Fail</a>
+      <ol>
+        <li><a href="#ch7-1">7.1 The arms, and the one thing allowed to vary</a></li>
+        <li><a href="#ch7-2">7.2 RMSPE, and training on the metric rather than near it</a></li>
+        <li><a href="#ch7-3">7.3 The leak that matters &mdash; and the split that isn't possible</a></li>
+        <li><a href="#ch7-4">7.4 Causality as a test, not a claim</a></li>
+      </ol>
+    </li>
+    <li><a href="#ch8">Chapter 8 &mdash; Results</a><span class="status">20 stocks, 76,599 segments</span>
+      <ol>
+        <li><a href="#ch8-1">8.1 The table</a></li>
+        <li><a href="#ch8-2">8.2 Depth and window length: where it turns over</a></li>
+        <li><a href="#ch8-3">8.3 What this licenses claiming, and what it doesn't</a></li>
+      </ol>
+    </li>
+    <li><a href="#ch9">Chapter 9 &mdash; What v0.2 Hands to v0.3</a>
+      <ol>
+        <li><a href="#ch9-1">9.1 The redundancy this benchmark pays for three times over</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+
+<div class="chapter" id="ch6">
+<div class="chapter-head">
+  <span class="eyebrow">Chapter 6</span>
+  <h2 class="chapter-title">Picking the Fight</h2>
+</div>
+
+<section id="ch6-1">
+  <h3><span class="sec-no">6.1</span> Why realized volatility is the sharpest possible test</h3>
+  <p>Most "do these features help?" questions are vague, because the feature family and the target have no particular relationship and you are really just asking whether a large pile of numbers happens to correlate with something. Realized volatility is different, and it is the reason ROADMAP.md put this benchmark first rather than the daily-bar study.</p>
+  <p>&sect;1.5 established that the lead-lag transform makes quadratic variation visible at level 2. Stated precisely: for the lead-lag embedding of a scalar path, the antisymmetric part of the second level &mdash; the L&eacute;vy area, doubled &mdash; equals the path's discrete quadratic variation exactly.</p>
+  <div class="eqn">
+    <math display="block"><mrow><msup><mi>S</mi><mrow><mo>(</mo><mn>1</mn><mo>,</mo><mn>2</mn><mo>)</mo></mrow></msup><mo>&minus;</mo><msup><mi>S</mi><mrow><mo>(</mo><mn>2</mn><mo>,</mo><mn>1</mn><mo>)</mo></mrow></msup><mo>=</mo><munder><mo>&sum;</mo><mi>i</mi></munder><msup><mrow><mo>(</mo><mi>&Delta;</mi><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo></mrow><mn>2</mn></msup></mrow></math>
+  </div>
+  <p>Not approximately. On a 200-point random walk, computed through <code>sigtrade</code>'s numpy backend:</p>
+<pre><code>QV               184.8037480539841
+S12 - S21        184.8037480539842
+ratio            1.0000000000000007</code></pre>
+  <span class="verified">verified &mdash; ratio 1 to 15 significant figures</span>
+  <p>This makes the benchmark's question unusually clean. Realized volatility is not something bolted onto signature features from outside; it is <i>a coordinate of the feature vector</i>. The classical estimator is contained in the family by construction. So the question is not the mushy "are signatures useful for volatility" but the sharp one:</p>
+  <div class="note"><b>The actual question:</b> level 2 already contains the classical estimator. Does anything <i>above</i> level 2 &mdash; the finer description of how the price got where it got &mdash; forecast the <i>next</i> ten minutes better than the classical estimator alone? That has a yes or a no, and either is publishable.</div>
+  <p>The Optiver Realized Volatility Prediction dataset supplies the rest of what a real test needs: genuine order-book paths for 112 stocks, roughly 3,830 ten-minute segments each, a fixed public metric, and a body of published top solutions to reproduce as baselines rather than invent.</p>
+</section>
+
+<section id="ch6-2">
+  <h3><span class="sec-no">6.2</span> Two backends, two bases</h3>
+  <p>The first thing this benchmark did was make the v0.1 backend choice untenable. Feature building needs one log-signature per segment per window: 20 stocks &times; ~3,830 segments &times; 3 windows is roughly 230,000 calls, before the depth study multiplies it again. Timed on a 600-point lead-lag, time-augmented path (1,199 points, dimension 4):</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>depth</th><th>coords</th><th>RoughPy</th><th>iisignature</th><th>ratio</th></tr></thead>
+      <tbody>
+        <tr><td>2</td><td>10</td><td>8.46 ms</td><td>0.02 ms</td><td>&times;423</td></tr>
+        <tr><td>3</td><td>30</td><td>12.19 ms</td><td>0.11 ms</td><td>&times;111</td></tr>
+        <tr><td>4</td><td>90</td><td>33.71 ms</td><td>0.53 ms</td><td>&times;64</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>At RoughPy's depth-3 rate the feature build alone is 47 minutes single-threaded; at iisignature's it is 25 seconds. That is the difference between a study you can iterate on and one you run overnight and stop questioning.</p>
+  <p>So <code>iisignature</code> became a second <code>log_signature</code> backend. It did not go in quietly, because the two backends do <i>not</i> return the same numbers &mdash; and this is the interesting part.</p>
+  <div class="bug">
+    <span class="bug-label">not a bug &mdash; a convention difference worth pinning down</span>
+    <p>Both libraries return coordinates of the same Lie element, but in <i>different bases</i> of the free Lie algebra. On a random 9-point path in dimension 3 at depth 3, the first six coordinates &mdash; levels 1 and 2 &mdash; agree to machine precision. Level 3 does not:</p>
+<pre><code>iisignature  ... -3.27487 -1.32135 -2.54993 -0.65885  1.14639 -0.39506
+roughpy      ...  3.27487  1.22858  1.14639  1.32135  0.65885  0.39506</code></pre>
+    <p>The same magnitudes appear in both, permuted and sign-flipped: different Lyndon/Hall bracket orderings and different sign conventions for the nested brackets. Neither is wrong. Both are legitimate coordinate systems on the same 14-dimensional space.</p>
+  </div>
+  <p>Silently accepting that would be a real hazard &mdash; a model fitted on one backend's columns and scored on the other's would produce plausible-looking garbage. Two things were done instead.</p>
+  <p>First, a basis-independent oracle. <code>_log_signature_expanded</code> maps <i>either</i> backend's output back into canonical tensor-word coordinates &mdash; via <code>iisignature</code>'s expanded method for one, <code>ctx.lie_to_tensor</code> for the other &mdash; where the redundant-but-canonical representation makes them directly comparable. There, both must equal <code>_log_signature_full_numpy</code>, which computes log(<i>S</i>) as a power series and involves no basis at all. Both do, to <code>1e-8</code>. That is what establishes that each backend really is returning a log-signature and not something merely log-signature-shaped.</p>
+  <p>Second, a test that asserts the disagreement <i>itself</i>: level 1 and 2 must match, level 3 must not. If a future release of either library quietly changed convention, that test fails loudly rather than the benchmark drifting.</p>
+  <span class="verified">tests/test_backend.py &mdash; both backends expand to the numpy oracle; divergence pinned from level 3</span>
+  <p>RoughPy stays the default for <code>log_signature</code>, matching <code>signature</code>; the benchmark asks for <code>iisignature</code> explicitly. The column names come from whichever backend produced them, so <code>get_feature_names_out</code> can never mislabel.</p>
+</section>
+
+<section id="ch6-3">
+  <h3><span class="sec-no">6.3</span> An irregular stream, and why forward-filling is free</h3>
+  <p>The raw book data is an event stream: a row appears only when the book changed, so <code>seconds_in_bucket</code> is sparse and irregular. Everything downstream wants a regular one-second grid, which means forward-filling &mdash; and forward-filling data before feeding it to a model is normally the sort of thing that deserves suspicion.</p>
+  <p>Here it is provably free, and the reason is &sect;5.1. The signature is invariant under reparametrization: subdividing a segment, or repeating a point, does not change it. Forward-filling inserts no new geometry &mdash; it repeats the standing price until the next update, tracing the identical trajectory. The price path the signature sees is <i>literally unchanged</i>.</p>
+  <p>What does change is the time channel added by <code>time_augment</code>, and it changes for the better. On the raw event stream, a uniformly spaced time channel measures <i>event count</i> &mdash; it would say two quiet minutes and two frantic ones took the same amount of time. On the filled grid it measures real elapsed seconds. So the resampling is not a compromise made for convenience; it is what makes the time augmentation mean what it is supposed to mean.</p>
+  <div class="note"><b>Worth noticing:</b> this is the first place in the project where a theorem from Part I did practical work in a design decision rather than in a test. Reparametrization invariance is why a preprocessing step that would otherwise need defending needs none.</div>
+</section>
+</div>
+
+<div class="chapter" id="ch7">
+<div class="chapter-head">
+  <span class="eyebrow">Chapter 7</span>
+  <h2 class="chapter-title">Designing a Comparison That Can Fail</h2>
+</div>
+
+<section id="ch7-1">
+  <h3><span class="sec-no">7.1</span> The arms, and the one thing allowed to vary</h3>
+  <p>A feature-comparison benchmark is worth exactly as much as its control. If the signature arm gets a different learner, different hyperparameters, different folds or even a different row ordering than the baseline, then a favourable number says nothing about signatures.</p>
+  <p>So: one learner (<code>HistGradientBoostingRegressor</code>, fixed hyperparameters, no tuning), one set of folds, one feature table built in a single pass so every arm sees byte-identical rows in identical order. The <i>only</i> thing that varies between arms is which columns are selected.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>arm</th><th>what it is</th></tr></thead>
+      <tbody>
+        <tr><td>naive</td><td>predict the observed window's realized volatility. No model at all. Volatility is strongly persistent, so this is a genuinely hard floor.</td></tr>
+        <tr><td>har</td><td>HAR-RV-style: realized volatility over nested suffix windows (600/300/150/60/30 s), plus activity and quarticity terms.</td></tr>
+        <tr><td>book</td><td>reproduced top-solution-style aggregates: WAP realized volatility at both book levels, relative spread, depth imbalance, trade intensity, over nested windows.</td></tr>
+        <tr><td>sig</td><td><code>sigtrade</code> log-signatures of the lead-lag, time-augmented log-WAP path over the same nested windows.</td></tr>
+        <tr><td>sig+har, sig+book, sig+book+har</td><td>the marginal-value arms &mdash; what signatures add <i>on top of</i> a baseline.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Those last three matter more than the headline. A general feature family beating a specialised baseline outright is rare and would be a surprising claim; adding information at the margin is the realistic and still-useful outcome, and it is the one the combined arms measure. Note also that <code>sig</code> is given the <i>same</i> multi-horizon window structure as <code>har</code>, so the comparison tests the feature family rather than the horizon choice.</p>
+  <p><code>stock_id</code> goes to every arm equally &mdash; each stock has its own baseline volatility level, and withholding that would handicap all arms identically but pointlessly.</p>
+</section>
+
+<section id="ch7-2">
+  <h3><span class="sec-no">7.2</span> RMSPE, and training on the metric rather than near it</h3>
+  <p>The competition scores root mean squared <i>percentage</i> error. Dividing by the truth means a miss on a quiet segment counts as heavily as the same relative miss on a violent one &mdash; which is the right call for volatility, where the quantity ranges over orders of magnitude and a proportional error is what a desk actually cares about.</p>
+  <p>Training on raw squared error would therefore optimise something the model is not scored on: it would lavish attention on the high-volatility segments where absolute errors are large and neglect the quiet ones entirely. The fix is a one-liner and worth spelling out because it is exact rather than a heuristic:</p>
+  <div class="eqn">
+    <math display="block"><mrow><munder><mo>&sum;</mo><mi>i</mi></munder><msub><mi>w</mi><mi>i</mi></msub><msup><mrow><mo>(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>&minus;</mo><msub><mover><mi>y</mi><mo>^</mo></mover><mi>i</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><mspace width="1em"/><mtext>with</mtext><mspace width="0.5em"/><msub><mi>w</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn><mo>/</mo><msubsup><mi>y</mi><mi>i</mi><mn>2</mn></msubsup><mspace width="1em"/><mo>=</mo><mspace width="0.5em"/><mi>n</mi><mo>&middot;</mo><msup><mtext>RMSPE</mtext><mn>2</mn></msup></mrow></math>
+  </div>
+  <p>Weighting each sample by the reciprocal of its squared target turns ordinary squared error into precisely the competition metric. The learner optimises what it is judged on, in every arm equally.</p>
+  <p>Early stopping is switched off deliberately. scikit-learn's internal validation split is random, and a random split would cut straight across the <code>time_id</code> grouping that the next section exists to protect &mdash; a leak smuggled in through a convenience flag.</p>
+</section>
+
+<section id="ch7-3">
+  <h3><span class="sec-no">7.3</span> The leak that matters &mdash; and the split that isn't possible</h3>
+  <p>ROADMAP.md asks for strict walk-forward cross-validation. On this dataset that is not achievable, and saying so is more useful than pretending otherwise.</p>
+  <p>The organisers deliberately shuffled and anonymised <code>time_id</code>, so its numeric order is not chronological. There is no timestamp anywhere in the shipped data. A genuine walk-forward split &mdash; train on the past, test on the future &mdash; cannot be reconstructed from what the competition provides. (Some competitors did reconstruct an ordering from cross-stock volatility correlations; that is a competition-specific exploit, not a foundation for an honest benchmark, and it is out of scope here.)</p>
+  <p>What <i>is</i> both reconstructable and essential is grouping. A <code>time_id</code> is one instant of market time observed simultaneously across all 112 stocks. Realized volatility is strongly correlated across stocks at the same instant &mdash; when the market is turbulent, it is turbulent for everyone. So if one stock's row from a given <code>time_id</code> trains a model that is then scored on a <i>different</i> stock's row from the <i>same</i> <code>time_id</code>, the model has effectively been shown the answer.</p>
+  <p><code>GroupKFold</code> on <code>time_id</code> closes that, and a test asserts it directly rather than trusting the class name:</p>
+<pre><code>for train_idx, test_idx in evaluate.folds(groups, n_splits=5).split(X, y, groups):
+    assert set(groups[train_idx]).isdisjoint(groups[test_idx])</code></pre>
+  <span class="verified">tests/test_orvp.py &mdash; no time_id straddles a fold boundary</span>
+  <div class="note"><b>Stated as a limitation, not solved:</b> this is grouped cross-validation, not walk-forward. It removes the cross-sectional leak, which is the one that would dominate here. It does not simulate deployment across time, and no number produced by it should be read as if it did.</div>
+</section>
+
+<section id="ch7-4">
+  <h3><span class="sec-no">7.4</span> Causality as a test, not a claim</h3>
+  <p>"No lookahead" is the easiest claim in quantitative research to make and the easiest to be quietly wrong about. Part I tested it for the rolling transformer; the benchmark needs its own version, because the failure mode here is different &mdash; an off-by-one in a window slice, or a <code>groupby</code> that silently spans segments.</p>
+  <p>The test is adversarial rather than assertive. Build one stock's features. Then rebuild them from a dataset in which every <i>later</i> segment's book prices have been overwritten with garbage, and demand that the earlier segments' features are unchanged:</p>
+<pre><code>book.loc[book["time_id"] >= N // 2, price_columns] = 999.0
+...
+pd.testing.assert_frame_equal(original.features.iloc[early], corrupted.features.iloc[early])</code></pre>
+  <p>If any feature reaches across segment boundaries, corrupting the future moves the past and the test fails. On real data that reach would be a reach into the future.</p>
+  <span class="verified">tests/test_orvp.py &mdash; features depend only on the segment they describe</span>
+  <p>Two smaller traps get their own tests for the same reason. A suffix-window test confirms the 300-second window genuinely ignores everything in the first 300 seconds &mdash; the kind of thing an off-by-one turns into a silent full-window duplicate. And a test asserts the 600-second and 150-second signature blocks actually differ, which would catch a slicing bug that turned the multi-horizon arm into three copies of the same numbers wearing different column names.</p>
+</section>
+</div>
+
+<div class="chapter" id="ch8">
+<div class="chapter-head">
+  <span class="eyebrow">Chapter 8</span>
+  <h2 class="chapter-title">Results</h2>
+</div>
+
+<section id="ch8-1">
+  <h3><span class="sec-no">8.1</span> The table</h3>
+  <p>20 stocks, 76,599 ten-minute segments, depth-3 log-signatures over 600/300/150-second causal suffix windows, five grouped folds, one shared learner. The whole feature table &mdash; every arm's columns &mdash; builds in 21 seconds.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>arm</th><th>features</th><th>RMSPE</th><th>fold std</th></tr></thead>
+      <tbody>
+        <tr><td>naive (observed window's RV)</td><td>1</td><td>0.33485</td><td>&mdash;</td></tr>
+        <tr><td>har</td><td>27</td><td>0.24075</td><td>0.00222</td></tr>
+        <tr><td>book</td><td>37</td><td>0.23177</td><td>0.00207</td></tr>
+        <tr><td><b>book+har</b></td><td>63</td><td><b>0.23093</b></td><td>0.00238</td></tr>
+        <tr><td>sig</td><td>91</td><td>0.24362</td><td>0.00212</td></tr>
+        <tr><td>sig+har</td><td>117</td><td>0.23980</td><td>0.00212</td></tr>
+        <tr><td>sig+book</td><td>127</td><td>0.23199</td><td>0.00212</td></tr>
+        <tr><td>sig+book+har</td><td>153</td><td>0.23133</td><td>0.00218</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>First, the sanity check: the reproduced baselines work. <code>book+har</code> beats the naive persistence predictor by 31.0% (bootstrap CI on the absolute delta [+0.0978, +0.1098], <i>p</i> = 0.000). Whatever the signature arm is being compared against, it is not a strawman.</p>
+  <p>Now the actual answer, in three parts.</p>
+  <p><b>Signatures alone nearly match hand-designed volatility features.</b> 91 log-signature coordinates reach 0.24362 against the 27-feature HAR-RV set's 0.24075 &mdash; 1.19% worse. What makes that interesting is not the sign but the size: the signature arm was never told what realized volatility <i>is</i>. It received the geometry of a price path and a truncation depth. A generic construction landing within about one percent of features designed specifically for this target is the genuinely notable number in the table.</p>
+  <p><b>They add a little to a weak baseline.</b> <code>sig+har</code> improves on <code>har</code> by 0.40%. So the signature coordinates are not pure redundancy with respect to multi-horizon RV; there is something in them that HAR-RV does not have.</p>
+  <p><b>They add nothing to a strong one.</b> <code>sig+book+har</code> scores 0.23133 against <code>book+har</code>'s 0.23093 &mdash; 0.17% <i>worse</i>, with the group bootstrap putting the whole 95% interval on the wrong side of zero (<i>p</i>(no improvement) = 0.992). Against the order-book baseline, 91 extra columns are cost without benefit.</p>
+  <div class="note"><b>The headline, stated the way &sect;8.3 requires:</b> on the competition training data, with the competition metric, under grouped cross-validation with a fixed shared learner, adding depth-3 log-signatures to the best reproduced baseline made RMSPE 0.17% <i>worse</i>. Signatures did not earn their place on this task.</div>
+</section>
+
+<section id="ch8-2">
+  <h3><span class="sec-no">8.2</span> Depth and window length: where it turns over</h3>
+  <p>Signature feature count grows fast in the truncation depth &mdash; the free Lie algebra on <i>d</i> generators has roughly <i>d</i><sup>n</sup>/<i>n</i> independent brackets at level <i>n</i>. The question is where the extra coordinates stop describing anything a ten-minute volatility forecast can use. Same folds, same learner, signature columns only.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>depth</th><th>windows (s)</th><th>features</th><th>RMSPE</th><th>fold std</th></tr></thead>
+      <tbody>
+        <tr><td>2</td><td>600</td><td>11</td><td>0.25134</td><td>0.00294</td></tr>
+        <tr><td>2</td><td>600-300-150</td><td>31</td><td>0.24510</td><td>0.00234</td></tr>
+        <tr><td>2</td><td>600-300-150-60</td><td>41</td><td>0.24491</td><td>0.00237</td></tr>
+        <tr><td>3</td><td>600</td><td>31</td><td>0.24700</td><td>0.00263</td></tr>
+        <tr><td><b>3</b></td><td><b>600-300-150</b></td><td><b>91</b></td><td><b>0.24362</b></td><td>0.00238</td></tr>
+        <tr><td>3</td><td>600-300-150-60</td><td>121</td><td>0.24348</td><td>0.00242</td></tr>
+        <tr><td>4</td><td>600</td><td>91</td><td>0.24627</td><td>0.00244</td></tr>
+        <tr><td>4</td><td>600-300-150</td><td>271</td><td>0.24354</td><td>0.00250</td></tr>
+        <tr><td>4</td><td>600-300-150-60</td><td>361</td><td>0.24352</td><td>0.00264</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><b>Depth turns over at 3.</b> Going from depth 2 to depth 3 buys a real improvement (0.24510 &rarr; 0.24362 on the three-window set). Going from 3 to 4 triples the feature count &mdash; 91 to 271 &mdash; and moves RMSPE by 0.00008, which is a thirtieth of the fold standard deviation. Level-4 brackets are describing path structure that this target cannot use.</p>
+  <p>The most useful line in the table is a coincidence of feature counts. Depth 4 over a single 600-second window and depth 3 over three nested windows both produce exactly <b>91 features</b>. They do not perform alike:</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>91 features, spent on&hellip;</th><th>RMSPE</th></tr></thead>
+      <tbody>
+        <tr><td>depth &mdash; level 4 of one window</td><td>0.24627</td></tr>
+        <tr><td>horizons &mdash; level 3 of three windows</td><td>0.24362</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note"><b>At a fixed feature budget, buy horizons rather than depth.</b> The same 91 columns are 1.1% better spent on multiple time scales than on deeper iterated integrals of one. Volatility forecasting wants to know how the recent past differs from the less-recent past &mdash; which is a statement about <i>windows</i> &mdash; more than it wants a finer description of any single window's geometry.</div>
+  <p>Windows show diminishing returns of their own. Adding the 300- and 150-second suffixes to the 600-second window is worth 1.4% at depth 3; adding a 60-second window on top of those is worth a further 0.06%, comfortably inside fold noise. Three horizons is where this task saturates.</p>
+</section>
+
+<section id="ch8-3">
+  <h3><span class="sec-no">8.3</span> What this licenses claiming, and what it doesn't</h3>
+  <p>The rule was fixed before any number existed, which is the only time such a rule is worth anything. The private leaderboard was rescored on market data from <i>after</i> the competition closed, so no result obtainable from the training data can be turned into a leaderboard position, and none is. Cross-validation here is grouped, not walk-forward (&sect;7.3), so nothing here simulates deployment across time.</p>
+  <p>There is a second limit, and it is the more important one because it cuts against the conclusion rather than for it.</p>
+  <div class="note"><b>This bounds price-path signatures, not signatures.</b> The <code>sig</code> arm received exactly one input: the WAP path. The <code>book</code> arm received order-book <i>state</i> &mdash; relative spread, depth imbalance, trade intensity. That information is not in the price path at any truncation depth, so no amount of algebra could have recovered it. The comparison as run is partly a feature-family comparison and partly an input-set comparison, and honesty requires saying which.</div>
+  <p>So the defensible claim is narrower than "signatures don't help here": <i>signatures of the WAP path alone do not beat order-book features.</i> The experiment that would settle the wider question is a multi-channel signature arm carrying spread and imbalance as additional path channels &mdash; at which point both arms see the same information and the comparison is clean. That is the obvious next thing to run, and it is deliberately not being run retroactively to rescue the number.</p>
+  <p>Worth noting what &sect;6.1 bought by framing the question sharply in advance. Because the lead-lag identity puts quadratic variation <i>inside</i> the feature family at level 2, a null result is not an absence of evidence. It says something specific: on ten-minute volatility forecasting, the path detail living above level 2 is either not predictive or is already captured by cheaper order-book statistics. That is a finding about how much path geometry this task can use, and it would have been the write-up either way.</p>
+</section>
+
+</div>
+
+<div class="chapter" id="ch9">
+<div class="chapter-head">
+  <span class="eyebrow">Chapter 9</span>
+  <h2 class="chapter-title">What v0.2 Hands to v0.3</h2>
+</div>
+
+<section id="ch9-1">
+  <h3><span class="sec-no">9.1</span> The redundancy this benchmark pays for three times over</h3>
+  <p>Building the signature arm made the case for v0.3 concrete in a way the roadmap's abstract argument did not.</p>
+  <p>Each segment's features come from three <i>nested suffix windows</i>: the last 600 seconds, the last 300, the last 150. The 150-second path is a suffix of the 300-second path, which is a suffix of the 600-second path. Every one is currently computed from scratch, so the final 150 seconds of price data get traversed three separate times, and the total work is 1050 points of path per segment where 600 would do.</p>
+  <p>Chen's identity (&sect;1.6) says that is unnecessary. The signature of a concatenation is the tensor product of the signatures, so the signature over a suffix can be obtained from the full window's signature by left-multiplying by the <i>inverse</i> of the departing prefix's signature &mdash; the group structure of the tensor algebra, doing exactly the work it exists to do. That is the v0.3 streaming engine, and this benchmark is what quantifies its value: not a speedup measured on synthetic paths, but a measured fraction of a real feature pipeline.</p>
+  <p>The other thing v0.2 hands forward is a caution. The nested-window redundancy is <i>arithmetically</i> removable; whether it is removable at acceptable numerical cost is a separate question. Repeated multiplication by group inverses at depth 4 compounds floating-point error in a way that recomputation does not, and the higher levels are precisely where the coefficients are smallest. ROADMAP.md already flags this as something to investigate and document rather than assume away. The oracles from Part I are what will settle it: whatever the streaming engine produces has to match a from-scratch recomputation to a stated tolerance, or the speedup is not real.</p>
+</section>
+</div>
+
+<footer>
+  <span>Part II of the sigtrade working notes. Part I &mdash; the algebra, and building the v0.1 transformer &mdash; is in <code>docs/notes.html</code>, chapters 1&ndash;5.</span>
+  <span>Generated from live Python sessions (Python 3.14.6, NixOS). Benchmark code and reproduction instructions: <code>benchmarks/orvp/</code>.</span>
+</footer>
+
+</div>

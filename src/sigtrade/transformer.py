@@ -8,8 +8,8 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils.validation import check_array, check_is_fitted
 
 from sigtrade._backend import (
+    _LOG_LABELS,
     Backend,
-    _log_labels_roughpy,
     _words,
     log_signature,
     n_features,
@@ -89,7 +89,10 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
 
     def get_feature_names_out(self, input_features=None):
         if self.output == "log_signature":
-            labels = _log_labels_roughpy(self._transformed_dim, self.depth)
+            # Backend-specific: the two log-signature backends use different
+            # bases of the free Lie algebra (see `log_signature`), so the
+            # names must come from whichever one produced the columns.
+            labels = _LOG_LABELS[self.backend](self._transformed_dim, self.depth)
             return np.array(["logsig_" + label for label in labels])
         words = _words(self._transformed_dim, self.depth)
         return np.array(["sig_" + "".join(map(str, w)) for w in words])
