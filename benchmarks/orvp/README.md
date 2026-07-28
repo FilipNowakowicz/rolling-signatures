@@ -21,16 +21,30 @@ the one this benchmark answers.
 
 ## Getting the data
 
-Needs a Kaggle API token at `~/.kaggle/kaggle.json` and acceptance of the
-competition rules on the competition page.
+Two prerequisites, both on kaggle.com:
+
+1. **An API token.** The current Kaggle CLI reads the newer prefixed token
+   from `~/.kaggle/access_token` (or `KAGGLE_API_TOKEN`) — *not* the older
+   `~/.kaggle/kaggle.json` username/key pair that most documentation still
+   describes.
+2. **Acceptance of the competition rules**, on the competition page. Worth
+   knowing because the failure is misleading: listing files and reading the
+   leaderboard work fine without it, and only *downloads* 403 — which looks
+   exactly like a broken token and isn't.
 
 ```bash
-python -m benchmarks.orvp.download          # ~3.5 GB into data/orvp
-SIGTRADE_ORVP_DIR=/path/to/orvp python -m benchmarks.orvp.download
+python -m benchmarks.orvp.download               # train.csv + a 20-stock subset
+python -m benchmarks.orvp.download --stocks 40   # a larger subset
+python -m benchmarks.orvp.download --all         # the entire archive
 ```
 
+The subset download is the default, since the benchmark evaluates on a stock
+subset anyway: 20 stocks is a few hundred megabytes against the full
+archive's several gigabytes. `train.csv` is fetched first because the subset
+is drawn from the stock ids that actually appear in it.
+
 `SIGTRADE_ORVP_DIR` points every module at an existing copy. The expected
-layout is the competition zip's own:
+layout is the competition archive's own:
 
 ```
 <dir>/train.csv
