@@ -45,28 +45,34 @@ in June.
 
 ## v0.1 — core transformer, correctness as a feature (≈ weeks 1–2, by ~Aug 8)
 
-- [ ] Week-1 spike: verify `iisignature` installs on current Python
+- [x] Week-1 spike: verify `iisignature` installs on current Python
       (it's in maintenance mode at 0.24); evaluate `RoughPy` (active,
       Lyons-lab) as alternative. Put the backend behind a single narrow
-      interface either way.
-- [ ] Package skeleton: `pyproject.toml`, `src/sigtrade/`, `tests/`, CI
+      interface either way. — `RoughPy` is the default backend, `iisignature`
+      an optional one, both behind `sigtrade._backend.signature()`.
+- [x] Package skeleton: `pyproject.toml`, `src/sigtrade/`, `tests/`, CI
       (GitHub Actions), MIT license, type hints. Publish to PyPI early —
-      even 0.1.0; "pip-installable" should be true from the first week.
-- [ ] `SignatureTransformer` (sklearn `fit`/`transform`): rolling-window
+      even 0.1.0; "pip-installable" should be true from the first week. —
+      skeleton, tests, CI and license are in place; **PyPI publish is still
+      open**, deliberately held back as a separate, explicit decision (a
+      public release isn't easily undone).
+- [x] `SignatureTransformer` (sklearn `fit`/`transform`): rolling-window
       multivariate series in → truncated signature / log-signature features
       out, **causally aligned** (feature at time t uses data ≤ t only;
       tested explicitly, not assumed).
-- [ ] Path preprocessing: time augmentation, lead-lag transform, basepoint
+- [x] Path preprocessing: time augmentation, lead-lag transform, basepoint
       handling, factorial rescaling of higher-order terms.
-- [ ] Pure-numpy reference implementation, used in tests only. Correctness
+- [x] Pure-numpy reference implementation, used in tests only. Correctness
       oracles via property-based tests (hypothesis): Chen's identity
       (concatenation ↔ tensor product), shuffle-product identity,
       log-signature lies in the free Lie algebra (Lyndon-basis check),
       invariance under time reparametrization, backend-vs-reference
       agreement on random paths.
-- [ ] `docs/math.md`: short expository note — tensor algebra as a ring,
-      grouplike elements, Chen, shuffle, why lead-lag recovers quadratic
-      variation. This is interview ammunition; write it as you build.
+- [x] Expository write-up of the math — tensor algebra as a ring, grouplike
+      elements, Chen, shuffle, why lead-lag recovers quadratic variation.
+      Living in `docs/notes.html` (chapter-by-chapter, built alongside the
+      code) rather than a separate `docs/math.md`; the two would only
+      duplicate each other.
 
 ## v0.2 — headline benchmark: Optiver realized volatility (≈ weeks 3–6, by ~Sept 5)
 
