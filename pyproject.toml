@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sigtrade"
-version = "0.2.0.dev0"
+version = "0.2.0"
 description = "Causal, rolling-window path-signature features for financial time series"
 readme = "README.md"
 license = { file = "LICENSE" }
