@@ -19,8 +19,14 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      - name: Install sigtrade with test and iisignature extras
-        run: pip install -e ".[test,iisignature]"
+      - name: Install sigtrade with test extras
+        run: pip install -e ".[test]"
+
+      - name: Install iisignature
+        # iisignature's setup.py needs numpy at build time but doesn't
+        # declare it as a build requirement, so it must already be present
+        # outside pip's isolated build env (docs/notes.html s1.9).
+        run: pip install --no-build-isolation iisignature
 
       - name: Run tests
         run: pytest -q
