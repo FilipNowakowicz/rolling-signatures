@@ -1,10 +1,10 @@
 # sigtrade
 
-> **Status: early development.** This repo currently holds the design
-> rationale and build plan (`CLAUDE.md`, `ROADMAP.md`); the package itself
-> is not yet implemented. This README describes what `sigtrade` is *for*
-> and will be kept honest as code lands — see [Progress](#progress) for
-> where things actually stand.
+[![CI](https://github.com/FilipNowakowicz/sigtrade/actions/workflows/ci.yml/badge.svg)](https://github.com/FilipNowakowicz/sigtrade/actions/workflows/ci.yml)
+
+> **Status: early development.** The v0.1 core can compute causal rolling
+> signatures, including lead-lag and time augmentation. The benchmark and
+> streaming engine are not implemented yet — see [Progress](#progress).
 
 A `scikit-learn`-compatible library that turns financial time series into
 **causal, rolling-window path-signature features**, with O(1)-per-tick
@@ -68,16 +68,43 @@ rationale in [`CLAUDE.md`](CLAUDE.md).
 
 ## Progress
 
-- [ ] v0.1 — core `SignatureTransformer`, causal rolling-window features,
-      property-based correctness tests (Chen's identity, shuffle-product,
-      free-Lie-algebra membership)
+- [x] v0.1 — core `SignatureTransformer`, causal rolling-window features,
+      preprocessing (basepoint, time augmentation, lead-lag, rescaling),
+      log-signatures, and a property-based correctness suite (Chen's
+      identity, shuffle identity, free-Lie-algebra/primitivity, time-
+      reparametrization invariance, backend agreement) all run in CI. Math
+      write-up lives in [`docs/notes.html`](docs/notes.html). PyPI publish
+      is intentionally deferred.
 - [ ] v0.2 — Optiver realized-volatility benchmark vs. reproduced baselines
 - [ ] v0.3 — O(1)-per-tick streaming signature updates
 - [ ] v0.4 — daily multi-asset-trend secondary study
 - [ ] v0.5 — stretch goals
 
-Nothing is checked off yet. Installation instructions and a quickstart
-example will be added once there's a package to install.
+## Install and use
+
+The project is not yet published to PyPI. Install the development checkout:
+
+```bash
+pip install -e .
+```
+
+`SignatureTransformer` follows the scikit-learn estimator interface. Each
+row uses only the current and preceding observations; no future value enters
+the feature at time `t`.
+
+```python
+from sigtrade import SignatureTransformer
+
+features = SignatureTransformer(
+    window=20,
+    depth=3,
+    time_augmentation=True,
+    lead_lag_transform=True,
+).fit_transform(prices)
+```
+
+For tests and small examples, pass `backend="numpy"` to use the bundled
+reference implementation. Production use defaults to RoughPy.
 
 ## Non-goals
 

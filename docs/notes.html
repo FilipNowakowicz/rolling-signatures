@@ -1,0 +1,950 @@
+<title>sigtrade — Working Notes</title>
+<style>
+  :root {
+    --bg: #f5f6f7;
+    --bg-raised: #ffffff;
+    --ink: #1a1d23;
+    --ink-soft: #55606e;
+    --ink-faint: #838d99;
+    --accent: #2c4a6e;
+    --accent-soft: #dce6ee;
+    --verify: #a86423;
+    --verify-soft: #f3e4d3;
+    --rule: #d8dbdf;
+    --code-bg: #eef0f2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c;
+      --bg-raised: #1b1f26;
+      --ink: #e7e9ec;
+      --ink-soft: #9ca6b3;
+      --ink-faint: #6b7580;
+      --accent: #86b6d6;
+      --accent-soft: #223040;
+      --verify: #e0a164;
+      --verify-soft: #33261a;
+      --rule: #2a2f37;
+      --code-bg: #20242b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c;
+    --bg-raised: #1b1f26;
+    --ink: #e7e9ec;
+    --ink-soft: #9ca6b3;
+    --ink-faint: #6b7580;
+    --accent: #86b6d6;
+    --accent-soft: #223040;
+    --verify: #e0a164;
+    --verify-soft: #33261a;
+    --rule: #2a2f37;
+    --code-bg: #20242b;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f7;
+    --bg-raised: #ffffff;
+    --ink: #1a1d23;
+    --ink-soft: #55606e;
+    --ink-faint: #838d99;
+    --accent: #2c4a6e;
+    --accent-soft: #dce6ee;
+    --verify: #a86423;
+    --verify-soft: #f3e4d3;
+    --rule: #d8dbdf;
+    --code-bg: #eef0f2;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: ui-serif, "Iowan Old Style", "Palatino Linotype", "URW Palladio L", "Book Antiqua", Georgia, serif;
+    font-size: 17px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 4rem 1.5rem 6rem;
+  }
+
+  .page {
+    max-width: 40rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3.2rem;
+  }
+
+  header.masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding-bottom: 1.8rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .eyebrow {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  h1 {
+    font-size: 2.1rem;
+    line-height: 1.15;
+    margin: 0;
+    text-wrap: balance;
+    font-weight: 600;
+  }
+
+  .subtitle {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+
+  /* table of contents */
+  nav.toc {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1.1rem 1.4rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.88rem;
+  }
+  nav.toc .toc-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 600;
+    margin-bottom: 0.7rem;
+  }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  nav.toc > ol > li > a { font-weight: 600; color: var(--ink); }
+  nav.toc ol ol { margin-top: 0.35rem; padding-left: 1.2rem; gap: 0.3rem; }
+  nav.toc ol ol a { color: var(--ink-soft); font-weight: 400; }
+  nav.toc a { text-decoration: none; }
+  nav.toc a:hover { color: var(--accent); }
+  nav.toc .status {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    color: var(--verify);
+    margin-left: 0.5rem;
+  }
+
+  .chapter {
+    display: flex;
+    flex-direction: column;
+    gap: 1.8rem;
+  }
+
+  .chapter-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding-bottom: 0.6rem;
+  }
+  .chapter-head .eyebrow { color: var(--accent); }
+  h2.chapter-title {
+    font-size: 1.7rem;
+    margin: 0;
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    scroll-margin-top: 1.5rem;
+  }
+
+  h3 {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    font-size: 1.25rem;
+    margin: 0;
+    font-weight: 600;
+  }
+
+  h3 .sec-no {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    font-weight: 500;
+  }
+
+  p { margin: 0; max-width: 62ch; }
+
+  .figure {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    overflow-x: auto;
+  }
+
+  .figure svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+  .caption {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+
+  .eqn {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 2px;
+    padding: 0.9rem 1.2rem;
+    overflow-x: auto;
+  }
+  .eqn math { font-size: 1.15rem; }
+
+  .verified {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--verify);
+    background: var(--verify-soft);
+    border-radius: 3px;
+    padding: 0.15rem 0.5rem;
+    width: fit-content;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+  }
+  th, td {
+    text-align: right;
+    padding: 0.4rem 0.7rem;
+    border-bottom: 1px solid var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  th:first-child, td:first-child { text-align: left; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  th {
+    color: var(--ink-soft);
+    font-weight: 600;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg-raised); }
+  .tablewrap table { margin: 0; }
+  .tablewrap td, .tablewrap th { border-bottom: 1px solid var(--rule); }
+  .tablewrap tr:last-child td { border-bottom: none; }
+
+  code {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border-radius: 3px;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.88em;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 0.9rem 1.1rem;
+    overflow-x: auto;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; }
+  .bad code, .bad { color: var(--verify); }
+  .good code, .good { color: var(--ink); }
+
+  .note {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    background: var(--accent-soft);
+    border-radius: 4px;
+    padding: 0.8rem 1rem;
+  }
+  .note b { color: var(--ink); }
+
+  .bug {
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--verify);
+    border-radius: 2px;
+    padding: 0.9rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    background: var(--bg-raised);
+  }
+  .bug .bug-label {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--verify);
+    font-weight: 600;
+  }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.6rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+</style>
+
+<div class="page">
+
+<header class="masthead">
+  <span class="eyebrow">sigtrade &middot; working notes</span>
+  <h1>sigtrade — Working Notes</h1>
+  <span class="subtitle">A running record of the math and the build, in one place, extended chapter by chapter &mdash; last updated 28 July 2026</span>
+</header>
+
+<nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">Contents</div>
+  <ol>
+    <li><a href="#ch1">Chapter 1 &mdash; Path Signatures, Worked From a Live Example</a>
+      <ol>
+        <li><a href="#ch1-1">1.1 The path</a></li>
+        <li><a href="#ch1-2">1.2 What a signature is</a></li>
+        <li><a href="#ch1-3">1.3 Level 1 &mdash; net displacement</a></li>
+        <li><a href="#ch1-4">1.4 Level 2 &mdash; what it does and doesn't see</a></li>
+        <li><a href="#ch1-5">1.5 Lead-lag: recovering quadratic variation</a></li>
+        <li><a href="#ch1-6">1.6 The ring structure: Chen's identity</a></li>
+        <li><a href="#ch1-7">1.7 The dual structure: shuffle identity</a></li>
+        <li><a href="#ch1-8">1.8 Log-signature &mdash; not yet computed</a></li>
+        <li><a href="#ch1-9">1.9 Backend spike: iisignature vs RoughPy</a></li>
+      </ol>
+    </li>
+    <li><a href="#ch2">Chapter 2 &mdash; Building sigtrade v0.1</a><span class="status">core transformer</span>
+      <ol>
+        <li><a href="#ch2-1">2.1 Package skeleton &amp; the narrow backend interface</a></li>
+        <li><a href="#ch2-2">2.2 SignatureTransformer: causal rolling windows</a></li>
+        <li><a href="#ch2-3">2.3 Two RoughPy bugs found while wiring it up</a></li>
+        <li><a href="#ch2-4">2.4 Where it stands</a></li>
+      </ol>
+    </li>
+    <li><a href="#ch3">Chapter 3 &mdash; Making a Path Financial</a><span class="status">18 passed, 2 skipped</span>
+      <ol>
+        <li><a href="#ch3-1">3.1 The preprocessing pipeline</a></li>
+        <li><a href="#ch3-2">3.2 Lead-lag and quadratic variation</a></li>
+        <li><a href="#ch3-3">3.3 A NumPy reference oracle</a></li>
+        <li><a href="#ch3-4">3.4 What is now guaranteed</a></li>
+      </ol>
+    </li>
+    <li><a href="#ch4">Chapter 4 &mdash; Log-Signatures: Compressing the Redundancy</a><span class="status">34 passed</span>
+      <ol>
+        <li><a href="#ch4-1">4.1 The redundancy problem, quantified</a></li>
+        <li><a href="#ch4-2">4.2 Primitive elements and Friedrichs' criterion</a></li>
+        <li><a href="#ch4-3">4.3 Computing the log in the truncated tensor algebra</a></li>
+        <li><a href="#ch4-4">4.4 The Hall basis and RoughPy's <code>to_logsignature</code></a></li>
+        <li><a href="#ch4-5">4.5 A third RoughPy bug: broken basis indexing</a></li>
+        <li><a href="#ch4-6">4.6 The correctness oracle: primitivity as a shuffle-vanishing test</a></li>
+        <li><a href="#ch4-7">4.7 Wiring it into the transformer, and where it stands</a></li>
+      </ol>
+    </li>
+    <li><a href="#ch5">Chapter 5 &mdash; Closing Out v0.1</a><span class="status">35 passed</span>
+      <ol>
+        <li><a href="#ch5-1">5.1 The last oracle: invariance under time reparametrization</a></li>
+        <li><a href="#ch5-2">5.2 CI, and deferring PyPI on purpose</a></li>
+        <li><a href="#ch5-3">5.3 Where v0.1 actually stands</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+
+<div class="chapter" id="ch1">
+<div class="chapter-head">
+  <span class="eyebrow">Chapter 1</span>
+  <h2 class="chapter-title">Path Signatures, Worked From a Live Example</h2>
+</div>
+
+<section id="ch1-1">
+  <h3><span class="sec-no">1.1</span> The path</h3>
+  <p>Everything below refers to one concrete object: a 10-point, 2-dimensional random walk (cumulative sum of Gaussian steps, seed 0), read as a piecewise-linear path <math><mi>X</mi><mo>:</mo><mo>[</mo><mn>0</mn><mo>,</mo><mi>T</mi><mo>]</mo><mo>&rarr;</mo><msup><mi>&#x211d;</mi><mn>2</mn></msup></math>.</p>
+  <div class="figure">
+    <svg viewBox="0 0 400 240" width="400" height="240">
+      <polygon points="63.00,188.65 102.15,99.01 176.85,138.11 214.85,144.16 210.72,127.74 216.49,69.57 246.93,64.70 264.68,51.35 324.44,59.56 336.97,93.72"
+        fill="var(--accent)" opacity="0.09" stroke="none"/>
+      <line x1="63.00" y1="188.65" x2="336.97" y2="93.72" stroke="var(--ink-faint)" stroke-width="1" stroke-dasharray="3,3"/>
+      <polyline points="63.00,188.65 102.15,99.01 176.85,138.11 214.85,144.16 210.72,127.74 216.49,69.57 246.93,64.70 264.68,51.35 324.44,59.56 336.97,93.72"
+        fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="63.00" cy="188.65" r="4.5" fill="var(--bg-raised)" stroke="var(--accent)" stroke-width="2"/>
+      <circle cx="336.97" cy="93.72" r="4" fill="var(--accent)"/>
+      <text x="63.00" y="205" font-size="10" fill="var(--ink-faint)" font-family="ui-monospace, monospace" text-anchor="middle">X&#8320;</text>
+      <text x="336.97" y="112" font-size="10" fill="var(--ink-faint)" font-family="ui-monospace, monospace" text-anchor="middle">X&#7451;</text>
+    </svg>
+    <span class="caption">The path (solid), the chord from X&#8320; to X&#7451; (dashed), and the region between them &mdash; the geometric picture behind the Lévy area in &sect;1.4.</span>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>k</th><th>x&#x2081;</th><th>x&#x2082;</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>1.7641</td><td>0.4002</td></tr>
+        <tr><td>1</td><td>2.7428</td><td>2.6411</td></tr>
+        <tr><td>2</td><td>4.6103</td><td>1.6638</td></tr>
+        <tr><td>3</td><td>5.5604</td><td>1.5124</td></tr>
+        <tr><td>4</td><td>5.4572</td><td>1.9230</td></tr>
+        <tr><td>5</td><td>5.6013</td><td>3.3773</td></tr>
+        <tr><td>6</td><td>6.3623</td><td>3.4990</td></tr>
+        <tr><td>7</td><td>6.8062</td><td>3.8326</td></tr>
+        <tr><td>8</td><td>8.3002</td><td>3.6275</td></tr>
+        <tr><td>9</td><td>8.6133</td><td>2.7734</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="ch1-2">
+  <h3><span class="sec-no">1.2</span> What a signature is</h3>
+  <p>For a word <math><mi>i</mi><mn>1</mn><mo>&#8943;</mo><mi>i</mi><mi>m</mi></math> over the alphabet <math><mo>{</mo><mn>1</mn><mo>,</mo><mn>2</mn><mo>}</mo></math> (one letter per path dimension), the corresponding signature entry is an iterated integral:</p>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <msup><mi>S</mi><mrow><msub><mi>i</mi><mn>1</mn></msub><mo>&#8943;</mo><msub><mi>i</mi><mi>m</mi></msub></mrow></msup>
+        <mo>=</mo>
+        <msub><mo>&#8747;</mo><mrow><mn>0</mn><mo>&lt;</mo><msub><mi>t</mi><mn>1</mn></msub><mo>&lt;</mo><mo>&#8943;</mo><mo>&lt;</mo><msub><mi>t</mi><mi>m</mi></msub><mo>&lt;</mo><mi>T</mi></mrow></msub>
+        <mi>d</mi><msubsup><mi>X</mi><msub><mi>t</mi><mn>1</mn></msub><msub><mi>i</mi><mn>1</mn></msub></msubsup>
+        <mo>&#8943;</mo>
+        <mi>d</mi><msubsup><mi>X</mi><msub><mi>t</mi><mi>m</mi></msub><msub><mi>i</mi><mi>m</mi></msub></msubsup>
+      </mrow>
+    </math>
+  </div>
+  <p>Depth-<i>k</i> truncation keeps every word up to length <i>k</i>. For a 2-dimensional path that's <math><mn>2</mn><mo>+</mo><mn>4</mn><mo>+</mo><mn>8</mn><mo>=</mo><mn>14</mn></math> numbers at depth 3 &mdash; exactly what <code>iisignature.sig(path, 3)</code> returned. The empty word gets coefficient 1 always &mdash; it's the identity element, which is why RoughPy prints its signature starting with <code>1()</code>.</p>
+</section>
+
+<section id="ch1-3">
+  <h3><span class="sec-no">1.3</span> Level 1 &mdash; net displacement</h3>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <msup><mi>S</mi><mi>i</mi></msup>
+        <mo>=</mo>
+        <msubsup><mo>&#8747;</mo><mn>0</mn><mi>T</mi></msubsup>
+        <mi>d</mi><msubsup><mi>X</mi><mi>t</mi><mi>i</mi></msubsup>
+        <mo>=</mo>
+        <msubsup><mi>X</mi><mi>T</mi><mi>i</mi></msubsup>
+        <mo>&minus;</mo>
+        <msubsup><mi>X</mi><mn>0</mn><mi>i</mi></msubsup>
+      </mrow>
+    </math>
+  </div>
+  <span class="verified">&#10003; verified numerically</span>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>coordinate 1</th><th>coordinate 2</th></tr></thead>
+      <tbody>
+        <tr><td>X&#7451; &minus; X&#8320;</td><td>6.849257</td><td>2.373225</td></tr>
+        <tr><td>S&#185; (from <code>iisignature.sig</code>)</td><td>6.849257</td><td>2.373225</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="ch1-4">
+  <h3><span class="sec-no">1.4</span> Level 2 &mdash; what it does and doesn't see</h3>
+  <p>Split into symmetric and antisymmetric parts. The symmetric (diagonal) part turns out to be exactly determined by level 1 &mdash; a pure calculus identity, true for <i>any</i> 1-d path regardless of how much it oscillates:</p>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <msup><mi>S</mi><mrow><mi>i</mi><mi>i</mi></mrow></msup>
+        <mo>=</mo>
+        <mfrac><mn>1</mn><mn>2</mn></mfrac>
+        <msup><mrow><mo>(</mo><msup><mi>S</mi><mi>i</mi></msup><mo>)</mo></mrow><mn>2</mn></msup>
+      </mrow>
+    </math>
+  </div>
+  <span class="verified">&#10003; verified numerically</span>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>value</th></tr></thead>
+      <tbody>
+        <tr><td>&frac12;(S&#185;)&sup2;</td><td>23.456160</td></tr>
+        <tr><td>S&#185;&#185; (diagonal, from signature)</td><td>23.456160</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">The diagonal level-2 term of the <b>raw</b> path is provably redundant with level 1 &mdash; it carries <b>zero</b> additional information, at any sampling resolution. It does <b>not</b>, by itself, capture realized variance. Getting quadratic variation out of signatures needs the mechanism in &sect;1.5.</div>
+  <p>The antisymmetric part is the Lévy area &mdash; signed area swept between the path and the chord shown in &sect;1.1 &mdash; and it's genuinely new information: it depends on the <i>order</i> in which the two coordinates moved, which the level-1 and diagonal level-2 terms cannot see.</p>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <mn>2</mn><mo>&times;</mo><mtext>Lévy area</mtext>
+        <mo>=</mo>
+        <msup><mi>S</mi><mrow><mn>1</mn><mn>2</mn></mrow></msup>
+        <mo>&minus;</mo>
+        <msup><mi>S</mi><mrow><mn>2</mn><mn>1</mn></mrow></msup>
+        <mo>=</mo>
+        <mn>0.9557</mn><mo>&minus;</mo><mn>15.2991</mn>
+        <mo>=</mo>
+        <mn>&minus;14.3434</mn>
+      </mrow>
+    </math>
+  </div>
+</section>
+
+<section id="ch1-5">
+  <h3><span class="sec-no">1.5</span> Lead-lag: how quadratic variation actually shows up</h3>
+  <p>The Gyurkó&ndash;Lyons construction pairs a coordinate with a one-tick-delayed copy of itself, doubling the resolution: <math><mover><mi>X</mi><mo>^</mo></mover></math> (lead) steps to the next value first; <math><mover><mi>X</mi><mo>&#711;</mo></mover></math> (lag) holds, then catches up. On this 2D (lead, lag) path, the antisymmetric cross-term is an <i>exact</i> identity, not an approximation:</p>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <msup><mi>S</mi><mrow><mtext>lead</mtext><mo>,</mo><mtext>lag</mtext></mrow></msup>
+        <mo>&minus;</mo>
+        <msup><mi>S</mi><mrow><mtext>lag</mtext><mo>,</mo><mtext>lead</mtext></mrow></msup>
+        <mo>=</mo>
+        <munder><mo>&sum;</mo><mi>k</mi></munder>
+        <msup><mrow><mo>(</mo><mi>&Delta;</mi><msub><mi>x</mi><mi>k</mi></msub><mo>)</mo></mrow><mn>2</mn></msup>
+      </mrow>
+    </math>
+  </div>
+  <span class="verified">&#10003; verified numerically &mdash; exact to 12 significant figures</span>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>value</th></tr></thead>
+      <tbody>
+        <tr><td>realized &sum;(&Delta;x&#8321;)&sup2;</td><td>8.48624822212359</td></tr>
+        <tr><td>S<sup>(lead,lag)</sup> &minus; S<sup>(lag,lead)</sup></td><td>8.48624822212359<b>2</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>This is the mechanism behind the roadmap's claim that lead-lag preprocessing recovers quadratic variation &mdash; and it's exact, not asymptotic, which is a much stronger thing to be able to say in an interview than "signatures relate to volatility."</p>
+</section>
+
+<section id="ch1-6">
+  <h3><span class="sec-no">1.6</span> The ring structure: Chen's identity</h3>
+  <p>The signature lives in the tensor algebra <math><mi>T</mi><mo>((</mo><mi>V</mi><mo>))</mo><mo>=</mo><munderover><mo>&#10753;</mo><mrow><mi>m</mi><mo>=</mo><mn>0</mn></mrow><mi>&infin;</mi></munderover><msup><mi>V</mi><mrow><mo>&otimes;</mo><mi>m</mi></mrow></msup></math> &mdash; the free associative algebra on <math><mi>V</mi><mo>=</mo><msup><mi>&#x211d;</mi><mn>2</mn></msup></math>. Concatenating path segments is the ring product of their signatures:</p>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <mi>S</mi><mo>(</mo><mi>X</mi><mo>&lowast;</mo><mi>Y</mi><mo>)</mo>
+        <mo>=</mo>
+        <mi>S</mi><mo>(</mo><mi>X</mi><mo>)</mo><mo>&otimes;</mo><mi>S</mi><mo>(</mo><mi>Y</mi><mo>)</mo>
+      </mrow>
+    </math>
+  </div>
+  <span class="verified">&#10003; verified numerically &mdash; <code>iisignature.sigcombine</code></span>
+  <p>Split the path at index 5 into two halves, compute each signature separately, combine them via the tensor product &mdash; the result matches the whole-path signature to <code>8.8&times;10&#8315;&#8311;</code> (floating-point noise). This is the identity that makes signatures <b>grouplike</b>: they form a group under this product (identity = the level-0 term, inverse = the signature of the time-reversed path). It's exactly what a streaming/rolling-window update needs &mdash; drop the oldest segment by left-multiplying its group inverse, append the new one by right-multiplying &mdash; O(1) amortized per tick instead of recomputing the whole window (v0.3 on the roadmap).</p>
+</section>
+
+<section id="ch1-7">
+  <h3><span class="sec-no">1.7</span> The dual structure: shuffle identity</h3>
+  <p>The <i>ordinary scalar product</i> of two signature entries equals a sum over interleavings (shuffles) of the two words &mdash; the commutative Hopf algebra dual to the concatenation product above:</p>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <msup><mi>S</mi><mi>u</mi></msup><mo>&sdot;</mo><msup><mi>S</mi><mi>v</mi></msup>
+        <mo>=</mo>
+        <munder><mo>&sum;</mo><mrow><mi>w</mi><mo>&isin;</mo><mi>u</mi><mo>&#10786;</mo><mi>v</mi></mrow></munder>
+        <msup><mi>S</mi><mi>w</mi></msup>
+      </mrow>
+    </math>
+  </div>
+  <span class="verified">&#10003; verified numerically</span>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>identity</th><th>LHS</th><th>RHS</th></tr></thead>
+      <tbody>
+        <tr><td>S&#185;&middot;S&sup2; = S&#185;&sup2;+S&sup2;&#185;</td><td>16.254831</td><td>16.254831</td></tr>
+        <tr><td>(S&#185;)&sup2; = 2&middot;S&#185;&#185;</td><td>46.912319</td><td>46.912319</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>This is the correctness oracle for any signature implementation, including the pure-numpy reference the roadmap calls for &mdash; a much stronger test than "looks about right," and it's a check that has to hold on <i>every</i> random path, not just this one. It's exactly what <code>tests/test_backend.py</code> in Chapter 2 turns into an automated regression test.</p>
+</section>
+
+<section id="ch1-8">
+  <h3><span class="sec-no">1.8</span> Log-signature &mdash; not yet computed</h3>
+  <p>Because a signature is grouplike, its logarithm (via the tensor algebra's own exp/log) is <i>primitive</i>, and primitives of this Hopf algebra are exactly the free Lie algebra on <math><mi>V</mi></math>:</p>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <mi>log</mi><mo>&#x2061;</mo><mi>S</mi><mo>(</mo><mi>X</mi><mo>)</mo>
+        <mo>&isin;</mo>
+        <mtext>Lie</mtext><mo>(</mo><mi>V</mi><mo>)</mo>
+        <mo>&sub;</mo>
+        <mi>T</mi><mo>((</mo><mi>V</mi><mo>))</mo>
+      </mrow>
+    </math>
+  </div>
+  <p>This is PBW-theorem territory: the Lyndon-word basis of the free Lie algebra gives a far smaller, information-lossless basis than the full tensor words. Computed in Chapter 4, once the transformer and preprocessing pipeline below existed to build it on top of.</p>
+</section>
+
+<section id="ch1-9">
+  <h3><span class="sec-no">1.9</span> Backend spike: iisignature vs RoughPy</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>iisignature 0.24</th><th>RoughPy 0.3.0</th></tr></thead>
+      <tbody>
+        <tr><td>cp314 wheel on PyPI</td><td>none &mdash; source build</td><td>yes, prebuilt</td></tr>
+        <tr><td>build needed manual fix</td><td>yes (numpy + --no-build-isolation)</td><td>no</td></tr>
+        <tr><td>maintenance</td><td>low (last dep. update 0.24)</td><td>active, Lyons-lab</td></tr>
+        <tr><td>API</td><td>simple, flat arrays</td><td>richer, more ceremony</td></tr>
+        <tr><td>agreement with other backend</td><td colspan="2">max abs diff 4.6&times;10&#8315;&#8309; at the time (see &sect;2.3 &mdash; this was a bug in the wrapper, not the backend)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Both computed the same signature. RoughPy became the default given wheel availability and maintenance status; <code>iisignature</code> stays available behind the same narrow interface as a cross-check / reference during testing.</p>
+</section>
+</div>
+
+<div class="chapter" id="ch2">
+<div class="chapter-head">
+  <span class="eyebrow">Chapter 2</span>
+  <h2 class="chapter-title">Building sigtrade v0.1</h2>
+</div>
+
+<section id="ch2-1">
+  <h3><span class="sec-no">2.1</span> Package skeleton &amp; the narrow backend interface</h3>
+  <p><code>src/sigtrade/_backend.py</code> is the only file that imports RoughPy or <code>iisignature</code> directly. Everything else calls one function:</p>
+  <pre><code>signature(path: np.ndarray, depth: int, backend: Backend = "roughpy") -&gt; np.ndarray</code></pre>
+  <p>which returns a flat array of levels 1..depth in lexicographic word order &mdash; the same layout <code>iisignature.sig</code> already uses, so both backends are drop-in interchangeable and every identity from Chapter 1 works unchanged as a test on either one. The point of isolating this in one narrow file: the moment a better backend appears (or RoughPy's API shifts again), only <code>_backend.py</code> changes &mdash; not the transformer, not the tests.</p>
+</section>
+
+<section id="ch2-2">
+  <h3><span class="sec-no">2.2</span> SignatureTransformer: causal rolling windows</h3>
+  <p><code>src/sigtrade/transformer.py</code> is a normal sklearn <code>fit</code>/<code>transform</code> estimator. The entire causality guarantee comes down to one line in <code>transform</code>:</p>
+  <pre><code>for t in range(n_samples):
+    start = max(0, t + 1 - self.window)
+    out[t] = signature(X[start : t + 1], self.depth, backend=self.backend)</code></pre>
+  <p>Row <i>t</i> is built only from <code>X[start : t+1]</code> &mdash; data up to and including <i>t</i>, never beyond it. This loops per-timestep and recomputes each window's signature from scratch (O(window) per tick) rather than vectorizing or reusing the previous window's result &mdash; deliberate for v0.1: the O(1)-per-tick version is exactly Chen's identity from &sect;1.6 (drop the departing segment via its group inverse, append the new one), and that's scoped as its own later chapter, not smuggled in early.</p>
+  <div class="note">The proof that this is actually causal isn't a code-review argument, it's a test: <code>test_causal_alignment</code> in <code>tests/test_transformer.py</code> fits the transformer on a truncated prefix <code>series[:t+1]</code> and asserts the last row matches the row at index <i>t</i> from fitting on the full series. If any future change introduced lookahead, this test would catch it.</div>
+</section>
+
+<section id="ch2-3">
+  <h3><span class="sec-no">2.3</span> Two RoughPy bugs found while wiring it up</h3>
+  <p>Both are silent &mdash; no exception, no warning, just a wrong number &mdash; which is the dangerous kind.</p>
+  <div class="bug">
+    <span class="bug-label">Bug 1 &middot; precision truncated by string conversion</span>
+    <p>RoughPy's <code>Scalar</code> doesn't support <code>float()</code> directly. The obvious workaround, going through its pretty-printed string, quietly rounds to display precision:</p>
+    <pre><code class="bad">float(str(sig[tensor_key]))   <span style="color:var(--ink-faint)">#  6.849256... becomes 6.84926</span></code></pre>
+    <pre><code class="good">sig[tensor_key].to_float()    <span style="color:var(--ink-faint)">#  full float64 precision</span></code></pre>
+    <p>This alone explained the entire ~4.6&times;10&#8315;&#8309; "backend disagreement" reported in &sect;1.9 &mdash; it wasn't RoughPy vs iisignature disagreeing, it was <code>str()</code> lying.</p>
+  </div>
+  <div class="bug">
+    <span class="bug-label">Bug 2 &middot; ctx= mis-indexes repeated-letter words</span>
+    <p>Building a <code>TensorKey</code> from a shared context object gives the <i>wrong value</i> for words like <code>(1,1)</code> &mdash; it silently returns a different entry's value, with a correctly-labelled repr that makes the bug easy to miss on a quick print:</p>
+    <pre><code class="bad">rp.TensorKey([1, 1], ctx=ctx)          <span style="color:var(--ink-faint)"># prints "(1,1)" but reads back S² 's value</span></code></pre>
+    <pre><code class="good">rp.TensorKey([1, 1], width=2, depth=3) <span style="color:var(--ink-faint)"># correct, and doesn't itself warn</span></code></pre>
+    <p>Caught only because &sect;1.4's diagonal identity (S&#185;&#185; = &frac12;(S&#185;)&sup2;) failed in the test suite &mdash; another point for treating the algebraic identities as tests rather than assertions.</p>
+  </div>
+</section>
+
+<section id="ch2-4">
+  <h3><span class="sec-no">2.4</span> Where it stands</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>status</th></tr></thead>
+      <tbody>
+        <tr><td>tests</td><td>initial core coverage; extended in Chapter 3</td></tr>
+        <tr><td>backend agreement</td><td>1&times;10&#8315;&#8312; after the fixes &mdash; true float64 precision, not a coincidence</td></tr>
+        <tr><td>PR</td><td><code>v0.1-signature-transformer-skeleton</code> &rarr; PR #25, open</td></tr>
+        <tr><td>not yet built</td><td>hypothesis property tests (Chapter 4 adds the first one), log-signatures (Chapter 4), CI, and the streaming engine</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+</div>
+
+<div class="chapter" id="ch3">
+<div class="chapter-head">
+  <span class="eyebrow">Chapter 3</span>
+  <h2 class="chapter-title">Making a Path Financial</h2>
+</div>
+
+<section id="ch3-1">
+  <h3><span class="sec-no">3.1</span> The preprocessing pipeline</h3>
+  <p>A raw price path is not always the path we want the signature to see. The transformer now has four explicit options: <code>basepoint</code>, <code>time_augmentation</code>, <code>lead_lag_transform</code>, and <code>rescale</code>. They are applied separately inside every rolling window, so row <i>t</i> still uses no data after <i>t</i>.</p>
+  <pre><code>window = X[start : t + 1]
+if basepoint:         window = [(0,...,0)] + window
+if time_augmentation: window = append_local_time(window)
+if lead_lag_transform: window = lead_lag(window)
+signature(window)</code></pre>
+  <p><b>Basepoint</b> prepends the origin. Ordinary signatures see increments, so they are translation invariant: without a basepoint, the paths <code>[100, 101, 99]</code> and <code>[0, 1, -1]</code> look identical. Including the origin adds the journey from zero to the first observation when that initial level is meaningful.</p>
+  <p><b>Time augmentation</b> appends a local clock running from 0 to 1. It gives the path a monotone coordinate, so the signature can encode how movements sit within a rolling window rather than seeing only their projection onto price space. The clock is local to the window on purpose: its construction needs only the number of already-observed points, not future timestamps. A future timestamp-aware variant can preserve irregular real elapsed time instead.</p>
+  <div class="note"><b>Design choice:</b> these are booleans rather than a hidden finance preset. The benchmark should be able to say exactly which path representation helped, rather than quietly combining several choices into one opaque feature set.</div>
+</section>
+
+<section id="ch3-2">
+  <h3><span class="sec-no">3.2</span> Lead-lag and quadratic variation</h3>
+  <p>For a one-dimensional sampled path <code>x0, x1, x2, ...</code>, the lead-lag transform produces the two-dimensional staircase</p>
+  <pre><code>(x0, x0), (x1, x0), (x1, x1), (x2, x1), (x2, x2), ...</code></pre>
+  <p>Each price move becomes a horizontal step and then a vertical step. The signed second-level cross terms measure the small rectangles between those steps. Their antisymmetric difference is the area, while their symmetric combination is controlled by the endpoint. Together, they recover the sum of squared increments &mdash; the discrete quadratic variation that matters for realised volatility.</p>
+  <p>This is the central finance reason to include the transform: a level-2 signature of a one-dimensional path cannot see its internal variation beyond its endpoint, but the two-dimensional lead-lag path can. The transformer uses <code>lead_lag_transform=True</code> rather than silently imposing it because the embedding doubles the channel count and feature growth is exponential in signature depth.</p>
+</section>
+
+<section id="ch3-3">
+  <h3><span class="sec-no">3.3</span> A NumPy reference oracle</h3>
+  <p>The production default remains RoughPy. A small <code>backend="numpy"</code> implementation now exists only to make the algebra executable in tests. For each increment <i>dx</i>, a straight line has signature</p>
+  <div class="eqn">
+    <math display="block"><mrow><mi>exp</mi><mo>(</mo><mi>dx</mi><mo>)</mo><mo>=</mo><mn>1</mn><mo>+</mo><mi>dx</mi><mo>+</mo><mfrac><msup><mi>dx</mi><mn>2</mn></msup><mrow><mn>2</mn><mo>!</mo></mrow></mfrac><mo>+</mo><mo>&#8943;</mo></mrow></math>
+  </div>
+  <p>The reference multiplies those truncated tensor exponentials one increment at a time. This is Chen's identity as an algorithm: at every level <i>k</i>, sum the tensor products of the old level <i>i</i> and the increment's level <i>k-i</i>. It is intentionally slower than RoughPy, but has two payoffs: it does not depend on a backend API, and it can be checked independently against RoughPy whenever that optional integration is installed.</p>
+  <p>There is a useful separation of responsibilities here. The NumPy code is not a competing production engine; it is the simple thing we trust enough to catch wrapper mistakes. RoughPy is the fast thing we use for real work.</p>
+</section>
+
+<section id="ch3-4">
+  <h3><span class="sec-no">3.4</span> What is now guaranteed</h3>
+  <span class="verified">&#10003; 18 passed, 2 optional-backend tests skipped</span>
+  <p>The current suite verifies causal alignment, output shape and names, parameter validation, basepoint/time/lead-lag construction, per-level factorial rescaling, the level-1 and diagonal level-2 formulae, shuffle identities, and Chen's identity for the independent reference implementation. The two skipped tests need optional external backends (RoughPy and iisignature); they run as cross-backend agreement checks when those packages are available.</p>
+  <p>The next learning step is log-signatures: why taking the tensor logarithm removes redundant shuffle coordinates and leaves a free-Lie-algebra basis. Chapter 4 does exactly that, and adds the first hypothesis-based property test along the way. After that, the streaming update built from the same Chen product and group inverse is next (v0.3 on the roadmap).</p>
+</section>
+</div>
+
+<div class="chapter" id="ch4">
+<div class="chapter-head">
+  <span class="eyebrow">Chapter 4</span>
+  <h2 class="chapter-title">Log-Signatures: Compressing the Redundancy</h2>
+</div>
+
+<section id="ch4-1">
+  <h3><span class="sec-no">4.1</span> The redundancy problem, quantified</h3>
+  <p>&sect;1.7's shuffle identity said the tensor coordinates of a signature are not independent &mdash; e.g. S&#185;&middot;S&sup2; is fully determined by S&#185;&sup2;+S&sup2;&#185;. Chapter 1 used that as a correctness check. Read the other way, it's a compression opportunity: the depth-<i>k</i> signature of a <i>d</i>-dimensional path has <math><msup><mi>d</mi><mi>k</mi></msup></math> coordinates at level <i>k</i>, but the shuffle relations mean far fewer than that are actually free.</p>
+  <p>The exact count of free coordinates is given by Witt's formula for the dimension of the free Lie algebra <math><mtext>Lie</mtext><mo>(</mo><mi>V</mi><mo>)</mo></math> on <math><mi>d</mi><mo>=</mo><mi>dim</mi><mo>&#x2061;</mo><mi>V</mi></math> generators:</p>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <mi>dim</mi><mo>&#x2061;</mo><msub><mtext>Lie</mtext><mi>n</mi></msub><mo>(</mo><mi>V</mi><mo>)</mo>
+        <mo>=</mo>
+        <mfrac><mn>1</mn><mi>n</mi></mfrac>
+        <munder><mo>&sum;</mo><mrow><mi>e</mi><mo>&#8739;</mo><mi>n</mi></mrow></munder>
+        <mi>&mu;</mi><mo>(</mo><mi>e</mi><mo>)</mo>
+        <msup><mi>d</mi><mrow><mi>n</mi><mo>/</mo><mi>e</mi></mrow></msup>
+      </mrow>
+    </math>
+  </div>
+  <p>(Möbius function <math><mi>&mu;</mi></math>, summed over divisors of the level <i>n</i>; implemented as <code>n_log_features</code> in <code>_backend.py</code>.) For the 2-dimensional path this whole notes page has been using:</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>depth</th><th>tensor coords &mdash; n_features(2,depth)</th><th>free coords &mdash; n_log_features(2,depth)</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>2</td><td>2</td></tr>
+        <tr><td>2</td><td>6</td><td>3</td></tr>
+        <tr><td>3</td><td>14</td><td>5</td></tr>
+        <tr><td>4</td><td>30</td><td>8</td></tr>
+        <tr><td>5</td><td>62</td><td>14</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note"><b>Honest framing:</b> the free-Lie dimension still grows like <math><msup><mi>d</mi><mi>n</mi></msup><mo>/</mo><mi>n</mi></math> &mdash; exponential in depth, same complexity class as the tensor coordinates, just divided down. The real payoff isn't asymptotic; it's that these coordinates are <i>non-redundant</i>. A downstream model fed raw tensor coordinates has to implicitly learn the shuffle constraints from data; a model fed log-signature coordinates never sees the redundancy in the first place.</div>
+</section>
+
+<section id="ch4-2">
+  <h3><span class="sec-no">4.2</span> Primitive elements and Friedrichs' criterion</h3>
+  <p>&sect;1.6 and &sect;1.7 are two views of one fact. Extend <math><mi>v</mi><mo>&#8614;</mo><mi>v</mi><mo>&otimes;</mo><mn>1</mn><mo>+</mo><mn>1</mn><mo>&otimes;</mo><mi>v</mi></math> from <math><mi>V</mi></math> to all of <math><mi>T</mi><mo>(</mo><mi>V</mi><mo>)</mo></math> as an algebra homomorphism (i.e. <math><mi>&Delta;</mi><mo>(</mo><mi>u</mi><mi>w</mi><mo>)</mo><mo>=</mo><mi>&Delta;</mi><mo>(</mo><mi>u</mi><mo>)</mo><mi>&Delta;</mi><mo>(</mo><mi>w</mi><mo>)</mo></math> under concatenation), and <math><mo>(</mo><mi>T</mi><mo>(</mo><mi>V</mi><mo>)</mo><mo>,</mo><mo>&otimes;</mo><mo>,</mo><mi>&Delta;</mi><mo>)</mo></math> is a graded bialgebra. Ree's theorem: a series <math><mi>X</mi></math> is <b>grouplike</b> for this <math><mi>&Delta;</mi></math> (i.e. <math><mi>&Delta;</mi><mo>(</mo><mi>X</mi><mo>)</mo><mo>=</mo><mi>X</mi><mo>&otimes;</mo><mi>X</mi></math>) exactly when its coefficients obey the shuffle relations &mdash; so &sect;1.7's numerical check <i>was</i> a check of grouplike-ness, stated in coordinates rather than in <math><mi>&Delta;</mi></math>.</p>
+  <p><b>Friedrichs' criterion</b> is the companion fact for the logarithm: if <math><mi>S</mi></math> is grouplike then <math><mi>log</mi><mo>&#x2061;</mo><mi>S</mi></math> is <b>primitive</b> &mdash; <math><mi>&Delta;</mi><mo>(</mo><mi>log</mi><mo>&#x2061;</mo><mi>S</mi><mo>)</mo><mo>=</mo><mi>log</mi><mo>&#x2061;</mo><mi>S</mi><mo>&otimes;</mo><mn>1</mn><mo>+</mo><mn>1</mn><mo>&otimes;</mo><mi>log</mi><mo>&#x2061;</mo><mi>S</mi></math> &mdash; and the primitive elements of this bialgebra are exactly <math><mtext>Lie</mtext><mo>(</mo><mi>V</mi><mo>)</mo></math>, the free Lie algebra generated by <math><mi>V</mi></math> under the commutator <math><mo>[</mo><mi>a</mi><mo>,</mo><mi>b</mi><mo>]</mo><mo>=</mo><mi>a</mi><mi>b</mi><mo>&minus;</mo><mi>b</mi><mi>a</mi></math>. This is the ring-theory payoff promised in <code>CLAUDE.md</code>: grouplike-ness (a statement about the tensor algebra as an associative ring) and Lie-ness (a statement about the same underlying space as a Lie algebra under the commutator) are dual sides of one theorem, not two separate facts bolted together.</p>
+  <p>Turned into coordinates, primitivity says the exact opposite of &sect;1.7's grouplike identity: instead of a shuffle sum <i>equalling</i> a product, it <i>vanishes</i>. For nonempty words <math><mi>u</mi><mo>,</mo><mi>v</mi></math>, log-signature coefficients satisfy <math><munder><mo>&sum;</mo><mrow><mi>w</mi><mo>&isin;</mo><mi>u</mi><mo>&#10786;</mo><mi>v</mi></mrow></munder><msup><mi>X</mi><mi>w</mi></msup><mo>=</mo><mn>0</mn></math>. On the &sect;1.1 path's log-signature (computed below in &sect;4.3):</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>identity</th><th>value</th></tr></thead>
+      <tbody>
+        <tr><td>2&middot;X<sup>112</sup>+X<sup>121</sup> (shuffle of "1" and "12")</td><td>2.1&times;10&#8315;&#185;&#8308;</td></tr>
+        <tr><td>X<sup>212</sup>+2&middot;X<sup>122</sup> (shuffle of "2" and "12")</td><td>5.3&times;10&#8315;&#185;&#8309;</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <span class="verified">&#10003; verified numerically &mdash; zero to floating-point noise</span>
+  <p>This is exactly the identity <code>test_log_signature_is_primitive_under_shuffle</code> checks with hypothesis in &sect;4.6, over random paths and random word pairs rather than one fixed example.</p>
+</section>
+
+<section id="ch4-3">
+  <h3><span class="sec-no">4.3</span> Computing the log in the truncated tensor algebra</h3>
+  <p>Write <math><mi>S</mi><mo>=</mo><mn>1</mn><mo>+</mo><mi>x</mi></math> (<math><mi>x</mi></math> has no level-0 part &mdash; it's the levels 1..depth already computed in &sect;3.3). Because <math><mi>x</mi></math> is nilpotent at any truncation (its <math><mi>k</mi></math>-th power has no nonzero terms below level <math><mi>k</mi></math>), the ordinary power series for the logarithm is not an approximation here &mdash; it's exact once truncated to depth:</p>
+  <div class="eqn">
+    <math display="block">
+      <mrow>
+        <mi>log</mi><mo>&#x2061;</mo><mi>S</mi>
+        <mo>=</mo>
+        <mi>x</mi><mo>&minus;</mo><mfrac><msup><mi>x</mi><mn>2</mn></msup><mn>2</mn></mfrac>
+        <mo>+</mo><mfrac><msup><mi>x</mi><mn>3</mn></msup><mn>3</mn></mfrac>
+        <mo>&minus;</mo><mo>&#8943;</mo>
+      </mrow>
+    </math>
+  </div>
+  <p><code>_backend.py</code>'s <code>_log_signature_full_numpy</code> computes exactly this, reusing the same level-list / Kronecker-product machinery as &sect;3.3's signature reference (refactored into a shared <code>_tensor_multiply_levels</code> helper &mdash; concatenation-as-ring-product, the same operation whether it's building the exponential of an increment or multiplying two partial log-series terms):</p>
+  <pre><code>def _tensor_multiply_levels(a, b, dim, depth):
+    out = []
+    for level in range(depth + 1):
+        acc = np.zeros(dim**level)
+        for left in range(level + 1):
+            acc = acc + np.kron(a[left], b[level - left])
+        out.append(acc)
+    return out
+
+def _log_signature_full_numpy(path, depth):
+    levels = _signature_levels_numpy(path, depth)
+    x = [np.zeros(1)] + [levels[l].copy() for l in range(1, depth + 1)]
+    log_levels = [np.zeros(dim**l) for l in range(depth + 1)]
+    term, sign = x, 1.0
+    for k in range(1, depth + 1):
+        for level in range(depth + 1):
+            log_levels[level] += sign * term[level] / k
+        if k &lt; depth:
+            term = _tensor_multiply_levels(term, x, dim, depth)
+        sign = -sign
+    return np.concatenate(log_levels[1:])</code></pre>
+  <p>On the &sect;1.1 path, level 1 is unchanged from the raw signature (the linear term of <math><mi>log</mi><mo>(</mo><mn>1</mn><mo>+</mo><mi>x</mi><mo>)</mo></math> is just <math><mi>x</mi></math> itself &mdash; same net displacement as &sect;1.3), and level 2 is now <i>exactly</i> antisymmetric, not merely determined-but-present the way &sect;1.4 found for the raw signature:</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>coordinate 1</th><th>coordinate 2</th></tr></thead>
+      <tbody>
+        <tr><td>log-sig level 1</td><td>6.849257</td><td>2.373225</td></tr>
+        <tr><td>raw S&#185; (from &sect;1.3, for comparison)</td><td>6.849257</td><td>2.373225</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>log level 2</th><th>col 1</th><th>col 2</th></tr></thead>
+      <tbody>
+        <tr><td>row 1</td><td>&asymp;0 (3.6&times;10&#8315;&#185;&#8309;)</td><td>&minus;7.171706</td></tr>
+        <tr><td>row 2</td><td>7.171706</td><td>&asymp;0</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <span class="verified">&#10003; verified numerically &mdash; diagonal zero to floating-point noise</span>
+</section>
+
+<section id="ch4-4">
+  <h3><span class="sec-no">4.4</span> The Hall basis and RoughPy's <code>to_logsignature</code></h3>
+  <p><code>_log_signature_full_numpy</code> is honest but wasteful: it hands back the full <code>n_features(dim, depth)</code>-sized redundant representation, not the <code>n_log_features(dim, depth)</code> free coordinates from &sect;4.1. Getting the minimal representation means picking an actual basis of <math><mtext>Lie</mtext><mo>(</mo><mi>V</mi><mo>)</mo></math>. The standard choice is a <b>Hall basis</b> built from <b>Lyndon words</b> (Chen&ndash;Fox&ndash;Lyndon theorem): a word is Lyndon if it is strictly smaller, lexicographically, than every one of its own rotations; each Lyndon word factors uniquely into two shorter Lyndon words (its <i>standard factorisation</i>), and bracketing that factorisation recursively gives one basis element per Lyndon word &mdash; a genuine basis of <math><mtext>Lie</mtext><mo>(</mo><mi>V</mi><mo>)</mo></math>, of exactly the dimension &sect;4.1 predicts.</p>
+  <p>RoughPy computes this rather than us having to: <code>ctx.to_logsignature(sig)</code> is documented as "equivalent to <code>tensor_to_lie(signature.log())</code>" &mdash; RoughPy's own words for precisely the log-then-project-to-Lie pipeline just built by hand in &sect;4.3. For the &sect;1.1 path at depth 3, width 2 (5 = <code>n_log_features(2, 3)</code> coordinates, matching &sect;4.1's table):</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>basis bracket</th><th>value</th></tr></thead>
+      <tbody>
+        <tr><td>[1] (= word "1")</td><td>6.849257</td></tr>
+        <tr><td>[2] (= word "2")</td><td>2.373225</td></tr>
+        <tr><td>[1,2]</td><td>&minus;7.171706</td></tr>
+        <tr><td>[1,[1,2]]</td><td>&minus;0.843217</td></tr>
+        <tr><td>[2,[1,2]]</td><td>&minus;5.183520</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <span class="verified">&#10003; verified numerically &mdash; matches the &sect;4.3 tensor-log coordinates via the projection in &sect;4.5</span>
+  <p>The bracket <code>[1,2]</code>'s value, &minus;7.171706, is exactly half of &sect;1.4's raw signed-area combination <math><msup><mi>S</mi><mn>12</mn></msup><mo>&minus;</mo><msup><mi>S</mi><mn>21</mn></msup><mo>=</mo><mo>&minus;</mo><mn>14.3434</mn></math>: the Lévy area from &sect;1.4 <i>is</i> the level-2 log-signature, up to that factor of 2 from how the bracket <math><mo>[</mo><mn>1</mn><mo>,</mo><mn>2</mn><mo>]</mo><mo>=</mo><mi>e</mi><mn>1</mn><mo>&otimes;</mo><mi>e</mi><mn>2</mn><mo>&minus;</mo><mi>e</mi><mn>2</mn><mo>&otimes;</mo><mi>e</mi><mn>1</mn></math> is normalised against the raw tensor coordinates.</p>
+</section>
+
+<section id="ch4-5">
+  <h3><span class="sec-no">4.5</span> A third RoughPy bug: broken basis indexing</h3>
+  <p>Both silent, same family as &sect;2.3's.</p>
+  <div class="bug">
+    <span class="bug-label">Bug 3 &middot; LieBasis.key_to_index and Lie.__getitem__(key) both wrong</span>
+    <p>The obvious way to line a <code>Lie</code> element's coefficients up with <code>lie_basis.index_to_key(i)</code>'s canonical order is to index by key directly. Both routes give wrong answers with no error:</p>
+    <pre><code class="bad">basis.key_to_index(basis.index_to_key(i))  <span style="color:var(--ink-faint)"># always returns 5, out of range, for every i</span>
+logsig[basis.index_to_key(i)]              <span style="color:var(--ink-faint)"># returns repeated, wrong values for i &ge; 2</span></code></pre>
+    <pre><code class="good">by_label = {str(item.key()): item.value().to_float() for item in logsig}
+[by_label.get(str(basis.index_to_key(i)), 0.0) for i in range(basis.dimension)]</code></pre>
+    <p>Iterating the <code>Lie</code> object and matching on the string form of each key -- <code>str(item.key())</code> against <code>str(basis.index_to_key(i))</code> -- was the only approach found that reliably lines values up with the canonical order. Worth flagging because it's easy to be misled by the correct-looking output: <code>logsig[basis.index_to_key(2)]</code> prints as <code>6.84926</code>, a <i>plausible-looking number</i> (it's actually the level-1 coefficient for word "1"), not an obvious garbage value.</p>
+  </div>
+  <p>Caught by <code>test_log_signature_matches_bracket_expansion_of_full_tensor_log</code>: expanding the brackets <code>[1,2]</code>, <code>[1,[1,2]]</code>, <code>[2,[1,2]]</code> by hand as tensor words (e.g. <math><mo>[</mo><mn>1</mn><mo>,</mo><mo>[</mo><mn>1</mn><mo>,</mo><mn>2</mn><mo>]</mo><mo>]</mo><mo>=</mo><mtext>word</mtext><mo>(</mo><mn>1</mn><mo>,</mo><mn>1</mn><mo>,</mo><mn>2</mn><mo>)</mo><mo>&minus;</mo><mn>2</mn><mo>&middot;</mo><mtext>word</mtext><mo>(</mo><mn>1</mn><mo>,</mo><mn>2</mn><mo>,</mo><mn>1</mn><mo>)</mo><mo>+</mo><mtext>word</mtext><mo>(</mo><mn>2</mn><mo>,</mo><mn>1</mn><mo>,</mo><mn>1</mn><mo>)</mo></math>) and cross-checking against &sect;4.3's independent numpy tensor log turned up index-5-out-of-bounds crashes and silently-wrong values before the string-label workaround was in place &mdash; the same pattern as &sect;2.3: treat the algebra as a test, not an assumption, and bugs like this surface immediately instead of contaminating a benchmark three chapters later.</p>
+</section>
+
+<section id="ch4-6">
+  <h3><span class="sec-no">4.6</span> The correctness oracle: primitivity as a shuffle-vanishing test</h3>
+  <p><code>_log_signature_full_numpy</code> isn't a second backend &mdash; it returns full redundant tensor coordinates, not the Hall-basis ones, so it's never compared elementwise against <code>log_signature()</code>. Its job is to make the primitivity identity from &sect;4.2 executable as a property test, the log-signature analogue of &sect;1.7's shuffle test for the plain signature:</p>
+  <pre><code>@given(
+    path=arrays(dtype=float, shape=(6, 2), elements=st.floats(-5, 5, allow_nan=False)),
+    u=st.tuples(st.integers(1, 2)),
+    v=st.tuples(st.integers(1, 2), st.integers(1, 2)),
+)
+def test_log_signature_is_primitive_under_shuffle(path, u, v):
+    log_full = dict(zip(_words(2, 3), _log_signature_full_numpy(path, depth=3)))
+    total = sum(log_full[w] for w in _shuffles(u, v))
+    assert total == pytest.approx(0.0, abs=1e-6)</code></pre>
+  <p>This is the roadmap's first <code>hypothesis</code>-based property test (flagged as "not yet built" since &sect;2.4): rather than one fixed path, it generates 50 random 6-point paths and random word pairs and checks the shuffle-vanishing identity holds on all of them. It's a meaningfully different check from &sect;4.5's bracket-expansion test &mdash; that one catches indexing bugs in the RoughPy extraction; this one catches errors in the log-series arithmetic itself (a wrong sign or a missing <code>/k</code> would break primitivity, but wouldn't necessarily break the single fixed-path bracket-expansion numbers, which is why both exist).</p>
+</section>
+
+<section id="ch4-7">
+  <h3><span class="sec-no">4.7</span> Wiring it into the transformer, and where it stands</h3>
+  <p><code>SignatureTransformer</code> gained an <code>output</code> parameter, mirroring &sect;2.2's existing <code>signature()</code> wiring rather than adding a new code path:</p>
+  <pre><code>compute = log_signature if self.output == "log_signature" else signature
+...
+out[t] = compute(path, self.depth, backend=self.backend)</code></pre>
+  <p><code>get_feature_names_out()</code> returns labels like <code>logsig_[1,[1,2]]</code> instead of <code>sig_112</code>. The causal-alignment guarantee from &sect;2.2 is unchanged and covered by its own test (<code>test_log_signature_causal_alignment</code>) rather than assumed to carry over.</p>
+  <div class="note"><b>Scope decision, stated honestly:</b> <code>output="log_signature"</code> only works with <code>backend="roughpy"</code> for now. A general-dimension, general-depth numpy Lyndon-basis reduction (rather than just the depth-3, width-2 bracket expansion hand-derived in &sect;4.5) and log-signature support for the <code>iisignature</code> backend are both real gaps, not implemented here &mdash; same honesty standard as &sect;1.9's backend spike and &sect;2.4's "not yet built" list. Factorial <code>rescale</code> is also not implemented for log-signature output (it would need to be indexed by bracket depth rather than word length) and raises a clear <code>ValueError</code> rather than silently doing the wrong thing.</div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>status</th></tr></thead>
+      <tbody>
+        <tr><td>tests</td><td>34 passed (up from 18 in Chapter 3), including the first hypothesis property test</td></tr>
+        <tr><td>log-signature backend</td><td>roughpy only; matches the independent numpy oracle at every checked coordinate</td></tr>
+        <tr><td>transformer</td><td><code>output="signature"</code> (default) or <code>"log_signature"</code>, same causal guarantee either way</td></tr>
+        <tr><td>not yet built</td><td>general Lyndon-basis reduction in numpy, iisignature log-signature support, rescale for log output, CI, the streaming engine</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+</div>
+
+<div class="chapter" id="ch5">
+<div class="chapter-head">
+  <span class="eyebrow">Chapter 5</span>
+  <h2 class="chapter-title">Closing Out v0.1</h2>
+</div>
+
+<section id="ch5-1">
+  <h3><span class="sec-no">5.1</span> The last oracle: invariance under time reparametrization</h3>
+  <p>ROADMAP.md's v0.1 checklist names five correctness oracles: Chen's identity (&sect;1.6, &sect;3.3), the shuffle identity (&sect;1.7), free-Lie-algebra membership (&sect;4.6's primitivity test), backend agreement (&sect;3.4), and invariance under time reparametrization &mdash; the one still open at the end of Chapter 4. It says: resampling the <i>same</i> trajectory more densely must not change its signature, because the signature is meant to characterize a path geometrically, not the clock used to record it.</p>
+  <p>For a piecewise-linear path this is exact, not approximate, and the reason is algebraic rather than numerical. Splitting a straight segment into two collinear sub-segments <i>a</i> and <i>b</i> (both scalar multiples of the same direction vector) means every tensor power of <i>a</i> and <i>b</i> commutes &mdash; <math><mi>a</mi><mo>&#8855;</mo><mi>b</mi><mo>=</mo><mi>b</mi><mo>&#8855;</mo><mi>a</mi></math> whenever <i>a</i> and <i>b</i> point the same way &mdash; so the truncated exponentials multiply the way ordinary scalar exponentials do:</p>
+  <div class="eqn">
+    <math display="block"><mrow><mi>exp</mi><mo>(</mo><mi>a</mi><mo>)</mo><mo>&middot;</mo><mi>exp</mi><mo>(</mo><mi>b</mi><mo>)</mo><mo>=</mo><mi>exp</mi><mo>(</mo><mi>a</mi><mo>+</mo><mi>b</mi><mo>)</mo></mrow></math>
+  </div>
+  <p>the same identity &sect;1.6/&sect;3.3 use for concatenating unrelated increments, specialized to the case where the increments happen to be parallel. <code>test_signature_invariant_under_time_reparametrization</code> (<code>tests/test_backend.py</code>) turns this into a <code>hypothesis</code> property test: it generates random 5-point paths and random sets of extra points inserted along existing segments, and asserts the resampled path's signature matches the original's to <code>1e-8</code> &mdash; exact equality up to floating-point roundoff, not a loose tolerance standing in for an approximation.</p>
+  <p>All five oracles from the roadmap are now implemented. That closes out the "not yet built" line that has been carried forward since &sect;2.4.</p>
+</section>
+
+<section id="ch5-2">
+  <h3><span class="sec-no">5.2</span> CI, and deferring PyPI on purpose</h3>
+  <p>Every identity in this document was, until now, something proven by running <code>pytest</code> locally and trusting the last run stayed valid. <code>.github/workflows/ci.yml</code> removes that trust requirement: every push to <code>main</code> and every pull request installs <code>sigtrade</code> with its test and <code>iisignature</code> extras and runs the full suite on Python 3.11 and 3.12. If a future change breaks Chen's identity or causal alignment, it shows up on the PR, not three chapters later.</p>
+  <div class="note"><b>Scope decision, stated honestly:</b> ROADMAP.md's package-skeleton line also asks for an early PyPI publish. That's deliberately not done here &mdash; claiming the <code>sigtrade</code> package name is a public, not-easily-reversed action, worth its own explicit decision rather than folding it into a v0.1 wrap-up commit. CI, the license, and the skeleton are in place; publishing is a separate step whenever it's actually wanted.</div>
+  <p>Also decided here: no separate <code>docs/math.md</code>. The roadmap asked for a short expository note as interview ammunition, but this document already <i>is</i> that note, written chapter by chapter as the code was built rather than distilled after the fact &mdash; a second file would only duplicate it out of sync.</p>
+</section>
+
+<section id="ch5-3">
+  <h3><span class="sec-no">5.3</span> Where v0.1 actually stands</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>status</th></tr></thead>
+      <tbody>
+        <tr><td>tests</td><td>35 passed, enforced in CI on Python 3.11 and 3.12</td></tr>
+        <tr><td>correctness oracles</td><td>all five from ROADMAP.md v0.1: Chen's identity, shuffle identity, primitivity/free Lie algebra, time-reparametrization invariance, backend agreement</td></tr>
+        <tr><td>transformer</td><td><code>signature</code> or <code>log_signature</code> output, causal by construction and by test, with basepoint/time-augmentation/lead-lag/rescale preprocessing</td></tr>
+        <tr><td>math write-up</td><td>this document; no separate <code>docs/math.md</code></td></tr>
+        <tr><td>not yet built</td><td>PyPI publish (deferred, not forgotten), general Lyndon-basis reduction in numpy, iisignature log-signature support, rescale for log output, the O(1)-per-tick streaming engine (v0.3)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>v0.2 is next: the Optiver realized-volatility benchmark against reproduced baselines. Unlike this chapter's closed algebraic identities, that one ends in a number that could go either way &mdash; ROADMAP.md's honesty constraint applies there directly.</p>
+</section>
+</div>
+
+<footer>
+  <span>Generated from live Python sessions (Python 3.14.6, NixOS + <code>steam-run</code> for manylinux wheel compatibility). Redeployed to this same URL as chapters are added &mdash; not a static snapshot.</span>
+  <span>Relationship to the repo: this page is the math write-up for v0.1 (ROADMAP.md); there is no separate <code>docs/math.md</code>, by design &mdash; see &sect;5.2.</span>
+</footer>
+
+</div>
