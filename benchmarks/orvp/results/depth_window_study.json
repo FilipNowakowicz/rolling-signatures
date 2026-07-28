@@ -1,0 +1,100 @@
+{
+  "config": {
+    "stocks": [
+      1,
+      4,
+      7,
+      18,
+      28,
+      32,
+      53,
+      59,
+      67,
+      70,
+      73,
+      75,
+      77,
+      88,
+      89,
+      94,
+      107,
+      116,
+      118,
+      124
+    ]
+  },
+  "rows": [
+    {
+      "depth": 2,
+      "windows": "600",
+      "n_features": 11,
+      "rmspe": 0.25134245397304844,
+      "fold_std": 0.0029402017710624105,
+      "build_seconds": 18.9
+    },
+    {
+      "depth": 2,
+      "windows": "600-300-150",
+      "n_features": 31,
+      "rmspe": 0.24509569409616475,
+      "fold_std": 0.0023355998617167572,
+      "build_seconds": 20.4
+    },
+    {
+      "depth": 2,
+      "windows": "600-300-150-60",
+      "n_features": 41,
+      "rmspe": 0.24490608039001202,
+      "fold_std": 0.0023682593519097875,
+      "build_seconds": 21.1
+    },
+    {
+      "depth": 3,
+      "windows": "600",
+      "n_features": 31,
+      "rmspe": 0.24699976856652262,
+      "fold_std": 0.002633356778193244,
+      "build_seconds": 20.3
+    },
+    {
+      "depth": 3,
+      "windows": "600-300-150",
+      "n_features": 91,
+      "rmspe": 0.2436163121084098,
+      "fold_std": 0.0023755886848881146,
+      "build_seconds": 2.4
+    },
+    {
+      "depth": 3,
+      "windows": "600-300-150-60",
+      "n_features": 121,
+      "rmspe": 0.24347784239151424,
+      "fold_std": 0.0024194420977702836,
+      "build_seconds": 24.8
+    },
+    {
+      "depth": 4,
+      "windows": "600",
+      "n_features": 91,
+      "rmspe": 0.24626610610167765,
+      "fold_std": 0.002437972313796457,
+      "build_seconds": 30.8
+    },
+    {
+      "depth": 4,
+      "windows": "600-300-150",
+      "n_features": 271,
+      "rmspe": 0.2435394124552634,
+      "fold_std": 0.0025006687625886512,
+      "build_seconds": 42.6
+    },
+    {
+      "depth": 4,
+      "windows": "600-300-150-60",
+      "n_features": 361,
+      "rmspe": 0.24351658439639165,
+      "fold_std": 0.0026379719275944095,
+      "build_seconds": 43.4
+    }
+  ]
+}

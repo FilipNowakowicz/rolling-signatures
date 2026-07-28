@@ -2,16 +2,19 @@
 
 [![CI](https://github.com/FilipNowakowicz/sigtrade/actions/workflows/ci.yml/badge.svg)](https://github.com/FilipNowakowicz/sigtrade/actions/workflows/ci.yml)
 
-> **Status: early development.** The v0.1 core can compute causal rolling
-> signatures, including lead-lag and time augmentation. The benchmark and
-> streaming engine are not implemented yet — see [Progress](#progress).
+> **Status: early development.** The v0.1 core computes causal rolling
+> signatures; v0.2 adds a benchmarked realized-volatility study on real
+> order-book data. The streaming engine is not implemented yet — see
+> [Progress](#progress).
 
 A `scikit-learn`-compatible library that turns financial time series into
 **causal, rolling-window path-signature features**, with O(1)-per-tick
 sliding-window updates derived from the group structure of the tensor
 algebra (Chen's identity + the group inverse). The headline benchmark is
 the Optiver Realized Volatility Prediction dataset, evaluated against
-reproduced top-solution baselines under strict walk-forward CV.
+reproduced top-solution baselines — where, as it turns out, **signature
+features did not beat the baselines.** See
+[Benchmark](#benchmark-optiver-realized-volatility).
 
 ## The gap this fills
 
@@ -56,8 +59,98 @@ concatenation corresponds to a tensor product of signatures) and the
 **shuffle-product identity** (a Hopf-algebra structure — a commutative ring
 dual to the tensor algebra). These aren't decoration: Chen's identity is
 what makes O(1) streaming updates possible, and the shuffle relations are
-used directly as a correctness oracle in tests. A full expository writeup
-will live at `docs/math.md` as it's built.
+used directly as a correctness oracle in tests. The full expository writeup
+is [`docs/notes.html`](docs/notes.html) — the algebra worked from a live
+example, and the v0.1 build — continued in
+[`docs/notes-orvp.html`](docs/notes-orvp.html) for the benchmark. There is
+no separate `docs/math.md`; these are it.
+
+## Benchmark: Optiver realized volatility
+
+**Headline: on this task, signature features did not improve on reproduced
+order-book baselines.** The full study is in
+[`benchmarks/orvp/`](benchmarks/orvp/README.md); the reasoning behind the
+design is [`docs/notes-orvp.html`](docs/notes-orvp.html).
+
+Why this task is a sharp test rather than a fishing expedition: the lead-lag
+transform makes quadratic variation appear *exactly* at level 2 of the
+signature, so realized volatility is not something bolted onto the feature
+family — it is a coordinate of it. The question is therefore precise: does
+anything **above** level 2 forecast the next ten minutes better than the
+classical estimator alone?
+
+20 stocks (seeded subset), 76,599 ten-minute segments, depth-3
+log-signatures over 600/300/150-second causal suffix windows. Every arm goes
+into the same `HistGradientBoostingRegressor` on the same `GroupKFold`
+splits; only the input columns change.
+
+| Arm | Features | RMSPE |
+| --- | ---: | ---: |
+| naive (predict the observed window's RV) | 1 | 0.33485 |
+| `har` — HAR-RV-style multi-horizon RV | 27 | 0.24075 |
+| `book` — reproduced top-solution-style book/trade aggregates | 37 | 0.23177 |
+| **`book+har`** | 63 | **0.23093** |
+| `sig` — log-signatures only | 91 | 0.24362 |
+| `sig+har` | 117 | 0.23980 |
+| `sig+book` | 127 | 0.23199 |
+| `sig+book+har` | 153 | 0.23133 |
+
+Read honestly, three things happened:
+
+1. **Signatures alone nearly match hand-designed volatility features.** 91
+   log-signature coordinates land within 1.2% of a 27-feature HAR-RV set
+   (0.24362 vs 0.24075) having been given no volatility-specific
+   engineering whatsoever — just the geometry of the price path. That the
+   generic construction gets that close is the genuinely interesting part.
+2. **They add a little to a weak baseline.** `sig+har` improves on `har` by
+   0.40%.
+3. **They add nothing to a strong one.** `sig+book+har` is 0.17% *worse*
+   than `book+har`, and the bootstrap says that degradation is consistent
+   rather than noise (p(no improvement) = 0.99). Against the order-book
+   baseline, the extra 91 columns are cost without benefit.
+
+**The most likely reason, stated plainly:** the signature arm was given only
+the WAP price path. The `book` arm was given order-book *state* — relative
+spread, depth imbalance, trade intensity — which is information that simply
+is not present in the price path, at any truncation depth. So this result is
+evidence that *signatures of the price path alone* do not beat order-book
+features; it is **not** evidence that signatures are useless here. The
+designated next experiment is a multi-channel signature arm carrying spread
+and imbalance as additional path channels, which would make it a fair
+feature-family comparison rather than an input-set comparison.
+
+### Truncation depth vs. window count
+
+Sweeping depth against window sets (signature columns only, same folds and
+learner) puts the turnover at **depth 3**: going 2 → 3 buys a real gain,
+while 3 → 4 triples the feature count (91 → 271) and moves RMSPE by 0.00008
+— a thirtieth of the fold standard deviation.
+
+The sharpest line falls out of a coincidence in feature counts. Depth 4 over
+one 600 s window and depth 3 over three nested windows both yield exactly
+**91 features**, and they do not perform alike:
+
+| 91 features, spent on… | RMSPE |
+| --- | ---: |
+| depth — level 4 of one window | 0.24627 |
+| horizons — level 3 of three windows | 0.24362 |
+
+**At a fixed feature budget, buy horizons rather than depth.** Volatility
+forecasting wants to know how the recent past differs from the less-recent
+past — a statement about *windows* — more than it wants a finer description
+of any one window's geometry. Full table: `benchmarks/orvp/results/`.
+
+### What this does not claim
+
+The competition's private leaderboard was rescored on market data from
+*after* it closed, so no result obtainable from the training data can be
+translated into a leaderboard position, and none is. Cross-validation here
+is `GroupKFold` on `time_id`, not walk-forward — the organisers shuffled
+`time_id` and shipped no timestamps, so no chronological order is
+recoverable from the data. Grouping still closes the leak that dominates
+here (a `time_id` is one instant of market time across all 112 stocks, and
+volatility is strongly correlated cross-sectionally), but it does not
+simulate deployment across time.
 
 ## Roadmap
 
@@ -75,7 +168,14 @@ rationale in [`CLAUDE.md`](CLAUDE.md).
       reparametrization invariance, backend agreement) all run in CI. Math
       write-up lives in [`docs/notes.html`](docs/notes.html). PyPI publish
       is intentionally deferred.
-- [ ] v0.2 — Optiver realized-volatility benchmark vs. reproduced baselines
+- [x] v0.2 — Optiver realized-volatility benchmark vs. reproduced
+      baselines, on 20 stocks and 76,599 real order-book segments, with a
+      shared learner and grouped CV across every arm. Result reported above
+      and it is a negative one. Added an `iisignature` log-signature backend
+      along the way (~100× faster than RoughPy at these sizes), with both
+      backends pinned against a basis-independent oracle since they return
+      coordinates in *different* bases of the free Lie algebra.
+      Write-up: [`docs/notes-orvp.html`](docs/notes-orvp.html).
 - [ ] v0.3 — O(1)-per-tick streaming signature updates
 - [ ] v0.4 — daily multi-asset-trend secondary study
 - [ ] v0.5 — stretch goals

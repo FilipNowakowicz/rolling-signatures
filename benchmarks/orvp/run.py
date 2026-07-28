@@ -66,7 +66,7 @@ def build_table(
     return pd.concat(frames, ignore_index=True)
 
 
-def score_arms(table: pd.DataFrame, arms: list[str], n_splits: int = 5) -> dict:
+def score_arms(table: pd.DataFrame, arms: list[str], n_splits: int = 5, predictions_out: Path | None = None) -> dict:
     """Run every arm plus the naive predictor on identical folds."""
     y = table["target"].to_numpy()
     groups = table["time_id"].to_numpy()
@@ -98,10 +98,18 @@ def score_arms(table: pd.DataFrame, arms: list[str], n_splits: int = 5) -> dict:
         predictions[arm] = result.predictions
         print(f"  {arm:>14s}  {result.n_features:4d} features  RMSPE {result.oof_rmspe:.5f}")
 
+    if predictions_out is not None:
+        # Out-of-fold predictions are the expensive artefact here -- every
+        # pairwise comparison is derivable from them, so saving them means a
+        # question asked later costs a bootstrap rather than 35 refits.
+        predictions_out.parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(predictions_out, y=y, groups=groups, **predictions)
+
     comparisons = {}
     for baseline, challenger in [
         ("naive", "book+har"),
         ("har", "sig"),
+        ("har", "sig+har"),
         ("book", "sig+book"),
         ("book+har", "sig+book+har"),
     ]:
@@ -158,7 +166,9 @@ def main() -> None:
     print(f"feature table: {table.shape[0]} segments x {table.shape[1] - 3} features "
           f"in {build_seconds:.0f}s")
 
-    results = score_arms(table, args.arms, n_splits=args.splits)
+    results = score_arms(
+        table, args.arms, n_splits=args.splits, predictions_out=args.out.parent / "oof_predictions.npz"
+    )
     results["config"] = {
         "stocks": stocks,
         "n_segments": int(table.shape[0]),

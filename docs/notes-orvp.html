@@ -341,7 +341,7 @@
         <li><a href="#ch7-4">7.4 Causality as a test, not a claim</a></li>
       </ol>
     </li>
-    <li><a href="#ch8">Chapter 8 &mdash; Results</a><span class="status">pending real data</span>
+    <li><a href="#ch8">Chapter 8 &mdash; Results</a><span class="status">20 stocks, 76,599 segments</span>
       <ol>
         <li><a href="#ch8-1">8.1 The table</a></li>
         <li><a href="#ch8-2">8.2 Depth and window length: where it turns over</a></li>
@@ -487,20 +487,71 @@ pd.testing.assert_frame_equal(original.features.iloc[early], corrupted.features.
 
 <section id="ch8-1">
   <h3><span class="sec-no">8.1</span> The table</h3>
-  <div class="note"><b>Not yet run.</b> The harness, the arms, the folds and the tests are complete and exercised end-to-end against synthetic data in the competition's exact on-disk layout. The numbers below wait on the competition download, which needs a Kaggle API token and acceptance of the competition rules &mdash; a credentialed, human step. Nothing in this chapter is filled in speculatively; it stays empty until a real run produces real numbers.</div>
-  <p>Reproduce with <code>python -m benchmarks.orvp.run --stocks 20 --jobs 8</code>.</p>
+  <p>20 stocks, 76,599 ten-minute segments, depth-3 log-signatures over 600/300/150-second causal suffix windows, five grouped folds, one shared learner. The whole feature table &mdash; every arm's columns &mdash; builds in 21 seconds.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>arm</th><th>features</th><th>RMSPE</th><th>fold std</th></tr></thead>
+      <tbody>
+        <tr><td>naive (observed window's RV)</td><td>1</td><td>0.33485</td><td>&mdash;</td></tr>
+        <tr><td>har</td><td>27</td><td>0.24075</td><td>0.00222</td></tr>
+        <tr><td>book</td><td>37</td><td>0.23177</td><td>0.00207</td></tr>
+        <tr><td><b>book+har</b></td><td>63</td><td><b>0.23093</b></td><td>0.00238</td></tr>
+        <tr><td>sig</td><td>91</td><td>0.24362</td><td>0.00212</td></tr>
+        <tr><td>sig+har</td><td>117</td><td>0.23980</td><td>0.00212</td></tr>
+        <tr><td>sig+book</td><td>127</td><td>0.23199</td><td>0.00212</td></tr>
+        <tr><td>sig+book+har</td><td>153</td><td>0.23133</td><td>0.00218</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>First, the sanity check: the reproduced baselines work. <code>book+har</code> beats the naive persistence predictor by 31.0% (bootstrap CI on the absolute delta [+0.0978, +0.1098], <i>p</i> = 0.000). Whatever the signature arm is being compared against, it is not a strawman.</p>
+  <p>Now the actual answer, in three parts.</p>
+  <p><b>Signatures alone nearly match hand-designed volatility features.</b> 91 log-signature coordinates reach 0.24362 against the 27-feature HAR-RV set's 0.24075 &mdash; 1.19% worse. What makes that interesting is not the sign but the size: the signature arm was never told what realized volatility <i>is</i>. It received the geometry of a price path and a truncation depth. A generic construction landing within about one percent of features designed specifically for this target is the genuinely notable number in the table.</p>
+  <p><b>They add a little to a weak baseline.</b> <code>sig+har</code> improves on <code>har</code> by 0.40%. So the signature coordinates are not pure redundancy with respect to multi-horizon RV; there is something in them that HAR-RV does not have.</p>
+  <p><b>They add nothing to a strong one.</b> <code>sig+book+har</code> scores 0.23133 against <code>book+har</code>'s 0.23093 &mdash; 0.17% <i>worse</i>, with the group bootstrap putting the whole 95% interval on the wrong side of zero (<i>p</i>(no improvement) = 0.992). Against the order-book baseline, 91 extra columns are cost without benefit.</p>
+  <div class="note"><b>The headline, stated the way &sect;8.3 requires:</b> on the competition training data, with the competition metric, under grouped cross-validation with a fixed shared learner, adding depth-3 log-signatures to the best reproduced baseline made RMSPE 0.17% <i>worse</i>. Signatures did not earn their place on this task.</div>
 </section>
 
 <section id="ch8-2">
   <h3><span class="sec-no">8.2</span> Depth and window length: where it turns over</h3>
-  <p>Pending the same run: <code>python -m benchmarks.orvp.study --stocks 20 --jobs 8</code> sweeps depths 2&ndash;4 against three window sets.</p>
+  <p>Signature feature count grows fast in the truncation depth &mdash; the free Lie algebra on <i>d</i> generators has roughly <i>d</i><sup>n</sup>/<i>n</i> independent brackets at level <i>n</i>. The question is where the extra coordinates stop describing anything a ten-minute volatility forecast can use. Same folds, same learner, signature columns only.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>depth</th><th>windows (s)</th><th>features</th><th>RMSPE</th><th>fold std</th></tr></thead>
+      <tbody>
+        <tr><td>2</td><td>600</td><td>11</td><td>0.25134</td><td>0.00294</td></tr>
+        <tr><td>2</td><td>600-300-150</td><td>31</td><td>0.24510</td><td>0.00234</td></tr>
+        <tr><td>2</td><td>600-300-150-60</td><td>41</td><td>0.24491</td><td>0.00237</td></tr>
+        <tr><td>3</td><td>600</td><td>31</td><td>0.24700</td><td>0.00263</td></tr>
+        <tr><td><b>3</b></td><td><b>600-300-150</b></td><td><b>91</b></td><td><b>0.24362</b></td><td>0.00238</td></tr>
+        <tr><td>3</td><td>600-300-150-60</td><td>121</td><td>0.24348</td><td>0.00242</td></tr>
+        <tr><td>4</td><td>600</td><td>91</td><td>0.24627</td><td>0.00244</td></tr>
+        <tr><td>4</td><td>600-300-150</td><td>271</td><td>0.24354</td><td>0.00250</td></tr>
+        <tr><td>4</td><td>600-300-150-60</td><td>361</td><td>0.24352</td><td>0.00264</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><b>Depth turns over at 3.</b> Going from depth 2 to depth 3 buys a real improvement (0.24510 &rarr; 0.24362 on the three-window set). Going from 3 to 4 triples the feature count &mdash; 91 to 271 &mdash; and moves RMSPE by 0.00008, which is a thirtieth of the fold standard deviation. Level-4 brackets are describing path structure that this target cannot use.</p>
+  <p>The most useful line in the table is a coincidence of feature counts. Depth 4 over a single 600-second window and depth 3 over three nested windows both produce exactly <b>91 features</b>. They do not perform alike:</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>91 features, spent on&hellip;</th><th>RMSPE</th></tr></thead>
+      <tbody>
+        <tr><td>depth &mdash; level 4 of one window</td><td>0.24627</td></tr>
+        <tr><td>horizons &mdash; level 3 of three windows</td><td>0.24362</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note"><b>At a fixed feature budget, buy horizons rather than depth.</b> The same 91 columns are 1.1% better spent on multiple time scales than on deeper iterated integrals of one. Volatility forecasting wants to know how the recent past differs from the less-recent past &mdash; which is a statement about <i>windows</i> &mdash; more than it wants a finer description of any single window's geometry.</div>
+  <p>Windows show diminishing returns of their own. Adding the 300- and 150-second suffixes to the 600-second window is worth 1.4% at depth 3; adding a 60-second window on top of those is worth a further 0.06%, comfortably inside fold noise. Three horizons is where this task saturates.</p>
 </section>
 
 <section id="ch8-3">
   <h3><span class="sec-no">8.3</span> What this licenses claiming, and what it doesn't</h3>
-  <p>Settled in advance of seeing any number, which is the only time such a rule is worth anything. The private leaderboard for this competition was rescored on market data from <i>after</i> it closed. No result obtainable from the training data can be translated into a leaderboard position, and none will be. The single claim the setup supports is:</p>
-  <div class="note">On the competition training data, with the competition metric, under grouped cross-validation with a fixed shared learner, signature features changed RMSPE by X% relative to the reproduced baselines &mdash; with a bootstrap interval over whole <code>time_id</code> groups attached.</div>
-  <p>If X is negative, X is reported negative. &sect;6.1 framed the question so that a null result is informative: level 2 already contains the classical estimator, so "nothing above level 2 forecasts" is a finding about the depth of path information that volatility forecasting can use, not a failed experiment.</p>
+  <p>The rule was fixed before any number existed, which is the only time such a rule is worth anything. The private leaderboard was rescored on market data from <i>after</i> the competition closed, so no result obtainable from the training data can be turned into a leaderboard position, and none is. Cross-validation here is grouped, not walk-forward (&sect;7.3), so nothing here simulates deployment across time.</p>
+  <p>There is a second limit, and it is the more important one because it cuts against the conclusion rather than for it.</p>
+  <div class="note"><b>This bounds price-path signatures, not signatures.</b> The <code>sig</code> arm received exactly one input: the WAP path. The <code>book</code> arm received order-book <i>state</i> &mdash; relative spread, depth imbalance, trade intensity. That information is not in the price path at any truncation depth, so no amount of algebra could have recovered it. The comparison as run is partly a feature-family comparison and partly an input-set comparison, and honesty requires saying which.</div>
+  <p>So the defensible claim is narrower than "signatures don't help here": <i>signatures of the WAP path alone do not beat order-book features.</i> The experiment that would settle the wider question is a multi-channel signature arm carrying spread and imbalance as additional path channels &mdash; at which point both arms see the same information and the comparison is clean. That is the obvious next thing to run, and it is deliberately not being run retroactively to rescue the number.</p>
+  <p>Worth noting what &sect;6.1 bought by framing the question sharply in advance. Because the lead-lag identity puts quadratic variation <i>inside</i> the feature family at level 2, a null result is not an absence of evidence. It says something specific: on ten-minute volatility forecasting, the path detail living above level 2 is either not predictive or is already captured by cheaper order-book statistics. That is a finding about how much path geometry this task can use, and it would have been the write-up either way.</p>
 </section>
 
 </div>
