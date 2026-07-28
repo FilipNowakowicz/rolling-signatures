@@ -6,6 +6,7 @@ Swapping or adding a backend means touching this file alone.
 
 from __future__ import annotations
 
+import functools
 import itertools
 from typing import Literal
 
@@ -113,6 +114,34 @@ def _signature_iisignature(path: np.ndarray, depth: int) -> np.ndarray:
     return np.asarray(iisignature.sig(path, depth), dtype=float)
 
 
+@functools.lru_cache(maxsize=None)
+def _iisignature_prepared(dim: int, depth: int):
+    """Cached `iisignature.prepare` handle.
+
+    `prepare` builds the Lyndon basis and the expansion tables for a given
+    (dim, depth) and costs far more than a single log-signature; the ORVP
+    benchmark calls `log_signature` hundreds of thousands of times at a
+    fixed (dim, depth), so this must be memoised rather than rebuilt.
+    """
+    import iisignature
+
+    return iisignature.prepare(dim, depth)
+
+
+def _log_labels_iisignature(dim: int, depth: int) -> list[str]:
+    """Lyndon-basis bracket labels, in `iisignature`'s own order."""
+    import iisignature
+
+    return list(iisignature.basis(_iisignature_prepared(dim, depth)))
+
+
+def _log_signature_iisignature(path: np.ndarray, depth: int) -> np.ndarray:
+    import iisignature
+
+    dim = path.shape[1]
+    return np.asarray(iisignature.logsig(path, _iisignature_prepared(dim, depth)), dtype=float)
+
+
 def _signature_levels_numpy(path: np.ndarray, depth: int) -> list[np.ndarray]:
     """Truncated signature as levels 0..depth (level 0 is the scalar 1).
 
@@ -181,6 +210,36 @@ def _log_signature_full_numpy(path: np.ndarray, depth: int) -> np.ndarray:
     return np.concatenate(log_levels[1:])
 
 
+def _log_signature_expanded(path: np.ndarray, depth: int, backend: Backend) -> np.ndarray:
+    """A backend's log-signature re-expressed in full tensor-word coordinates.
+
+    A correctness oracle, not a feature builder. `log_signature()` returns
+    coordinates in whichever basis of the free Lie algebra its backend
+    prefers, and those bases genuinely differ (see that function's
+    docstring). Mapping both back into the redundant but canonical
+    `n_features(dim, depth)` word coordinates gives a basis-independent
+    place to compare them -- to each other, and to
+    `_log_signature_full_numpy`. Used only by tests.
+    """
+    dim = path.shape[1]
+    if backend == "iisignature":
+        import iisignature
+
+        # iisignature computes the expanded form directly when asked for
+        # method "x", so nothing here has to know the Lyndon convention.
+        return np.asarray(iisignature.logsig(path, _iisignature_prepared(dim, depth), "x"), dtype=float)
+    if backend == "roughpy":
+        import roughpy as rp
+
+        ctx, sig = _roughpy_signature(path, depth)
+        tensor = ctx.lie_to_tensor(ctx.to_logsignature(sig))
+        return np.array(
+            [tensor[rp.TensorKey(list(word), width=dim, depth=depth)].to_float() for word in _words(dim, depth)],
+            dtype=float,
+        )
+    raise ValueError(f"cannot expand log-signature for backend {backend!r}")
+
+
 _BACKENDS = {
     "roughpy": _signature_roughpy,
     "iisignature": _signature_iisignature,
@@ -189,6 +248,12 @@ _BACKENDS = {
 
 _LOG_BACKENDS = {
     "roughpy": _log_signature_roughpy,
+    "iisignature": _log_signature_iisignature,
+}
+
+_LOG_LABELS = {
+    "roughpy": _log_labels_roughpy,
+    "iisignature": _log_labels_iisignature,
 }
 
 
@@ -215,13 +280,25 @@ def signature(path: np.ndarray, depth: int, backend: Backend = "roughpy") -> np.
 def log_signature(path: np.ndarray, depth: int, backend: Backend = "roughpy") -> np.ndarray:
     """Truncated log-signature of a `(n_points, dim)` path.
 
-    Returns Hall-basis (Lyndon-factorisation) coordinates of log(signature)
-    -- the minimal free-Lie-algebra representation, `n_log_features(dim,
-    depth)` numbers instead of `signature()`'s `n_features(dim, depth)`; see
-    docs/notes.html ch.4. Only the `roughpy` backend is implemented: unlike
-    `signature()`, this is not yet drop-in interchangeable across backends
-    (`_log_signature_full_numpy` is a numpy correctness oracle only, not a
-    backend -- see its docstring).
+    Returns coordinates of log(signature) in a basis of the free Lie algebra
+    -- the minimal representation, `n_log_features(dim, depth)` numbers
+    instead of `signature()`'s `n_features(dim, depth)`; see
+    docs/notes.html ch.4.
+
+    IMPORTANT -- unlike `signature()`, the two backends here are *not*
+    numerically interchangeable. Both return genuine log-signatures, but in
+    different bases: they agree through level 2 and diverge from level 3, in
+    both the ordering and the sign convention of the nested brackets
+    (docs/notes-orvp.html s6.2). Either is a valid feature set and the two
+    span the same space, but a model fitted on one backend's coordinates
+    must be scored on the same backend's coordinates. Use
+    `_log_signature_expanded` to compare them on basis-independent ground;
+    `get_feature_names_out` reports the backend's own bracket labels.
+
+    `iisignature` is roughly two orders of magnitude faster than `roughpy`
+    here and is what the ORVP benchmark uses; `roughpy` remains the default
+    for consistency with `signature()`. `_log_signature_full_numpy` is a
+    numpy correctness oracle only, not a backend -- see its docstring.
     """
     path = np.asarray(path, dtype=float)
     if path.ndim != 2:
