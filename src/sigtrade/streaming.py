@@ -1,4 +1,4 @@
-"""O(1)-per-tick sliding-window signatures.
+"""Sliding-window signatures at O(1) steady-state cost per tick.
 
 Recomputing a rolling signature from scratch at every tick costs O(window),
 and almost all of that work is re-traversing path the previous tick already
@@ -9,8 +9,28 @@ operations (`sigtrade.algebra`):
     S(new window) = S(departing increment)^-1 * S(old window) * S(arriving increment)
 
 Left-multiplying by an inverse deletes the departing segment; right-multiplying
-adds the new one. Neither touches the interior of the window, so the cost per
-tick depends on `depth` and the channel count and *not at all* on `window`.
+adds the new one. Neither touches the interior of the window, so a slide costs
+a function of `depth` and the channel count and *nothing* in `window`.
+
+What that does and does not claim, stated once and used consistently
+everywhere else:
+
+* **Steady state -- once the window is full -- is O(1) per tick.** That is the
+  sliding identity above, and it is what `benchmarks/streaming/` measures: the
+  per-tick cost is flat from window 10 to window 1200.
+* **With re-anchoring on, steady state is O(1) *amortized* per tick.** The
+  default `refresh_every="auto"` spends one O(window) recomputation every
+  `window` ticks (point 3 below), which is O(1) per tick averaged out and
+  measures as a flat 23-37% surcharge that does not grow with the window.
+* **Warm-up, before the window is full, is not O(1) per tick.** Without time
+  augmentation it is: the fill streams like any other slide, with nothing
+  departing. With `time_augmentation=True` it is not, because `time_augment`
+  spreads [0, 1] over however many points it has, so each arriving point
+  rescales the time channel of every increment already accumulated. The engine
+  recomputes on those ticks, which costs O(window^2) once at the head of a
+  stream. On a long stream that amortizes away; on a series shorter than a few
+  windows it does not, and `method="auto"` on `SignatureTransformer` is not
+  currently sensitive to it.
 
 Three practical points, all of which the benchmark in `benchmarks/streaming/`
 measures rather than assumes:
@@ -23,12 +43,14 @@ measures rather than assumes:
 2. Preprocessing survives the move. Every option in `sigtrade.preprocessing`
    except `basepoint` turns one raw increment into a fixed-size *block* of
    preprocessed increments, so sliding stays a constant-size operation.
-   `basepoint` does not: it pins the path to the origin, so every slide
-   rewrites the leading increment, and streaming is refused for it.
+   `basepoint` does not: it changes how the window's left boundary is
+   represented, pinning the path to the origin so that every slide rewrites the
+   leading increment rather than dropping it. Supporting it would need a
+   different update, and the current implementation does not offer it.
 3. Repeated group operations accumulate floating-point error where a
    recomputation would not. `refresh_every` re-anchors on a real
-   recomputation; doing so once per `window` ticks is still O(1) amortized,
-   which is why that is the default.
+   recomputation; doing so once per `window` ticks keeps the steady state O(1)
+   amortized, which is why that is the default.
 """
 
 from __future__ import annotations
@@ -126,7 +148,11 @@ def _block_inverse(block: list[np.ndarray], dim: int, depth: int) -> Levels:
 
 
 class StreamingSignature:
-    """Rolling depth-`depth` signature of the last `window` points, O(1) per tick.
+    """Rolling depth-`depth` signature of the last `window` points.
+
+    Steady-state cost -- once the window is full -- is O(1) per tick, O(1)
+    amortized with the default re-anchoring; the warm-up is not, under time
+    augmentation. See the module docstring for the exact statement.
 
     Push points in with `update`; each call returns the signature of the window
     ending at that point, in the same layout and with the same causal guarantee
@@ -145,14 +171,15 @@ class StreamingSignature:
     dim
         Number of channels of the *raw* input points.
     time_augmentation, lead_lag_transform
-        As in `SignatureTransformer`. `basepoint` has no streaming form and is
-        not offered -- see the module docstring.
+        As in `SignatureTransformer`. `basepoint` is not supported by this
+        implementation and is not offered -- see the module docstring.
     refresh_every
         How often to re-anchor on a from-scratch recomputation, to stop
         floating-point drift accumulating. `"auto"` (the default) is every
-        `window` ticks, which bounds the drift while staying O(1) amortized;
-        an integer sets the period explicitly; `None` never re-anchors, which
-        is what `benchmarks/streaming/` uses to measure drift in the raw.
+        `window` ticks, which bounds the drift while keeping the steady state
+        O(1) amortized; an integer sets the period explicitly; `None` never
+        re-anchors, which is what `benchmarks/streaming/` uses to measure
+        drift in the raw.
     """
 
     def __init__(
@@ -241,7 +268,10 @@ class StreamingSignature:
         due = self.refresh_every is not None and self._since_recompute >= self.refresh_every
         # A window that is not yet full renormalises the time channel on every
         # tick, so the sliding identity does not apply to it: dt changes, and
-        # with it every increment already in the accumulated signature.
+        # with it every increment already in the accumulated signature. Hence
+        # the warm-up recomputes under time augmentation -- O(window) per tick
+        # until the window fills, which is where the O(1)-per-tick claim starts
+        # rather than tick 1.
         must_recompute = self.time_augmentation and not was_full
         if due or must_recompute:
             self._recompute()
@@ -257,7 +287,7 @@ class StreamingSignature:
         return np.array([self.update(point) for point in points])
 
     def _slide(self, departing: np.ndarray | None, arriving: np.ndarray) -> None:
-        """The O(1) update: drop the left end by an inverse, add the right end."""
+        """The constant-cost update: drop the left end by an inverse, add the right."""
         dim, depth = self.n_channels, self.depth
         if departing is not None:
             block = self._encoding.block(departing, self._dt)

@@ -50,11 +50,11 @@ must never be claimed. The real gap, which the README must state precisely:
 sktime targets panel classification (pre-segmented series → one vector);
 quant pipelines need *causal rolling-window features on a continuous
 stream* with strict no-lookahead alignment, finance-specific preprocessing
-defaults (lead-lag → quadratic variation), and O(1)-per-tick sliding-window
-updates via Chen's identity + the group inverse — which no high-level
-library exposes. Differentiator: "the missing middle layer between
-signature engines and quant practice," with the streaming engine as the
-genuine mathematical contribution (see `ROADMAP.md`).
+defaults (lead-lag → quadratic variation), and sliding-window updates that
+cost O(1) per tick in the steady state via Chen's identity + the group
+inverse — which no high-level library exposes. Differentiator: "the missing
+middle layer between signature engines and quant practice," with the
+streaming engine as the genuine mathematical contribution (see `ROADMAP.md`).
 
 ## Relationship to `~/Projects/quant`
 

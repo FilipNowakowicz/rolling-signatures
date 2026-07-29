@@ -5,14 +5,22 @@
 Three questions, each of which can come back against the engine:
 
 1. **Is the per-tick cost really independent of the window?** That is the
-   whole claim -- O(1) amortized instead of O(window) -- and it is the one
-   thing here that is a theorem, so a measured slope in `window` would mean a
-   bug rather than a disappointment.
-2. **Does that beat recomputing?** Against the pure-numpy reference, trivially.
+   whole claim -- O(1) per tick in the steady state, O(1) amortized once
+   re-anchoring is on, instead of O(window) -- and it is the one thing here
+   that is a theorem, so a measured slope in `window` would mean a bug rather
+   than a disappointment. Everything is measured *after* the window has
+   filled, which is the regime the claim is about: under time augmentation the
+   warm-up recomputes on every tick, because the local [0, 1] time scale
+   changes as points arrive.
+2. **Does that beat recomputing?** Against RoughPy, the default backend, and
+   against the pure-numpy reference, yes at every window measured -- and the
+   RoughPy number is the one worth quoting, numpy being a test oracle.
    Against `iisignature`'s compiled recompute it is a genuine race, because the
    streaming update is interpreted Python doing dozens of small numpy calls
    while the batch route is one C call over a longer path. There is a crossover
    window and this finds it, rather than quoting the asymptotics and stopping.
+   `SignatureTransformer`'s `method="auto"` rule is calibrated on the
+   `crossover_window` entry this writes out.
 3. **What does it cost in accuracy?** Repeated group operations accumulate
    floating-point error that a recomputation never incurs
    (`docs/notes-orvp.html` s9.1 flagged this before the code existed). Measured

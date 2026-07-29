@@ -4,10 +4,10 @@ Working name: **sigtrade**. Rename freely — not load-bearing.
 
 One-liner: a `scikit-learn`-compatible library that turns financial time
 series into **causal, rolling-window path-signature features**, with
-O(1)-per-tick sliding-window updates derived from the group structure of the
-tensor algebra (Chen's identity + group inverse), benchmarked on the Optiver
-Realized Volatility Prediction dataset against reproduced top-solution
-baselines.
+sliding-window updates that cost O(1) per tick in the steady state, derived
+from the group structure of the tensor algebra (Chen's identity + group
+inverse), benchmarked on the Optiver Realized Volatility Prediction dataset
+against reproduced top-solution baselines.
 
 Full background and rationale: see `CLAUDE.md`.
 
@@ -25,8 +25,9 @@ Kidger, Lyons 2020). Name it in the README. The differentiation is:
 2. **Streaming updates via the algebra.** Signatures are grouplike: sliding
    a window = left-multiply by the inverse of the departing segment's
    signature, right-multiply by the new increment (Chen's identity).
-   O(window) recompute → O(1) amortized per tick. No existing high-level
-   library exposes this as a rolling-feature API.
+   O(window) recompute → O(1) amortized per tick in the steady state, once
+   the window is full. No existing high-level library exposes this as a
+   rolling-feature API.
 3. **Finance-specific defaults and honest finance benchmarks.** Lead-lag
    (quadratic variation), time augmentation, cost-aware causal evaluation,
    negative results reported.
@@ -165,30 +166,37 @@ This closes that, and adds the replication v0.2 lacked.
 ## v0.3 — streaming engine (Sept–Oct, interview-season depth)
 
 - [x] Sliding-window signature updates via Chen's identity + group inverse
-      of the departing segment. O(1) amortized per tick vs O(window)
-      recompute. `sigtrade.algebra` (the truncated tensor algebra as an
+      of the departing segment. O(1) per tick in the steady state (O(1)
+      amortized with re-anchoring on) vs O(window) recompute; the warm-up
+      before the window fills is *not* constant-time under time augmentation,
+      because the local [0, 1] time scale changes on every tick, so those
+      ticks recompute. `sigtrade.algebra` (the truncated tensor algebra as an
       object: multiply, inverse, exp, log, dilate) and `sigtrade.streaming`
       (`StreamingSignature`, `rolling_signature`, `suffix_signature`,
       `nested_suffix_signatures`), wired into `SignatureTransformer` as
-      `method="auto"|"batch"|"streaming"` — streaming is now the default for
-      `output="signature"`.
-- [x] Benchmark the speedup honestly — `benchmarks/streaming/`. **O(1) is
-      confirmed**: per-tick cost is flat from window 10 to window 1200, so
-      the win over recomputation grows without bound (452× against the
-      numpy reference and 129× against RoughPy at window 1200). **The honest
-      qualification**: the update is interpreted Python, so against
+      `method="auto"|"batch"|"streaming"`, with `"auto"` following the
+      measured crossover rather than always streaming.
+- [x] Benchmark the speedup honestly — `benchmarks/streaming/`. **Flatness is
+      confirmed**: steady-state per-tick cost is unchanged from window 10 to
+      window 1200, so the win over recomputation grows with the window. The
+      headline number is **129× against RoughPy at window 1200** — the
+      library's default backend, beaten at every window measured. (452×
+      against the numpy reference is a larger number against a test oracle,
+      and is reported but not led with.) **The qualification, always stated
+      alongside**: the update is interpreted Python, so against
       `iisignature`'s compiled recompute it only wins past a crossover
-      window — between 600 and 1200 at depth 2, between 300 and 600 at
-      depth 3. Below that, batch is faster despite being asymptotically
-      worse, and the README says so.
+      window — 1200 at depth 2, 600 at depth 3. Below that, compiled batch is
+      faster despite being asymptotically worse, and both the README and
+      `method="auto"` say so.
 - [x] Numerical-stability story, investigated rather than assumed. Drift
       from repeated group operations is real and grows steeply in depth
       (~1e-15 at depth 2, ~1e-9 at depth 5 over 20,000 unanchored ticks,
       concentrated in the top level) and *quadratically* in tick count —
       about ×4 per doubling, so a long stream does not grow out of it.
       Re-anchoring on a from-scratch recomputation once per `window` ticks
-      pins it near machine precision and is still O(1) amortized, so it is
-      the default (`refresh_every="auto"`).
+      pins it near machine precision at a measured 23–37% per-tick surcharge
+      and keeps the steady state O(1) amortized, so it is the default
+      (`refresh_every="auto"`).
 - [x] Retracted a claim v0.2 made about v0.3: `docs/notes-orvp.html` §9.1
       proposed removing the nested 600/300/150-window redundancy with group
       inverses. Measured, that route is *slower* than the naive one — the
@@ -196,8 +204,8 @@ This closes that, and adds the replication v0.2 lacked.
       forwards (no inverse), and even that loses to just calling
       `iisignature` three times. Group inverses earn their keep on sliding
       windows, where the shared part cannot be re-decomposed, and not here.
-      `nested_suffix_signatures` implements the chunked route; §11.3 of the
-      notes states the retraction.
+      `nested_suffix_signatures` implements the chunked route; §11.4 of
+      `docs/notes-streaming.html` states the retraction.
 - [x] This is the "what did you actually do, mathematically?" answer: the
       group structure of the tensor algebra doing load-bearing work.
       `tests/test_algebra.py` pins it as a group (two-sided inverse, the
