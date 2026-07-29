@@ -1,12 +1,12 @@
-from sigtrade._backend import log_signature, n_features, n_log_features, signature
-from sigtrade.preprocessing import add_basepoint, lead_lag, preprocess_path, time_augment
-from sigtrade.streaming import (
+from rollsig._backend import log_signature, n_features, n_log_features, signature
+from rollsig.preprocessing import add_basepoint, lead_lag, preprocess_path, time_augment
+from rollsig.streaming import (
     StreamingSignature,
     nested_suffix_signatures,
     rolling_signature,
     suffix_signature,
 )
-from sigtrade.transformer import SignatureTransformer
+from rollsig.transformer import SignatureTransformer
 
 __all__ = [
     "SignatureTransformer",

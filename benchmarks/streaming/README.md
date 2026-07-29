@@ -1,10 +1,10 @@
 # Streaming benchmark
 
-The v0.3 study: does computing a rolling signature by *updating* it beat
+The streaming study: does computing a rolling signature by *updating* it beat
 recomputing it, and what does the update cost in accuracy?
 
 This directory is research code. It is deliberately *not* part of the
-installable `sigtrade` package — it consumes `sigtrade`'s public API exactly
+installable `rollsig` package — it consumes `rollsig`'s public API exactly
 as an outside user would.
 
 ```bash
@@ -20,7 +20,7 @@ channel count that `benchmarks/orvp` actually uses.
 
 ## What is being claimed
 
-`sigtrade.streaming` slides a window by cancelling the departing increment
+`rollsig.streaming` slides a window by cancelling the departing increment
 with a group inverse and appending the arriving one, instead of re-reading the
 window (`docs/notes-streaming.html` §10.1):
 
@@ -78,7 +78,7 @@ up as a flat 23–37% surcharge that also does not grow with the window.
 Against **RoughPy**, the library's default backend, at every window measured —
 1.7× at window 10 rising to **129× at window 1200**, and still rising, since
 one column is flat and the other is not. That is the headline comparison: it is
-against the backend `sigtrade` actually ships with.
+against the backend `rollsig` actually ships with.
 
 Against the pure-numpy reference the ratio is larger (up to 452×) and means
 less — numpy here is a test oracle, not a backend anyone should compute with.
@@ -102,9 +102,9 @@ floating-point noise either way, so it is purely a speed decision, and an
 explicit `method="batch"` or `method="streaming"` overrides it.
 
 A compiled implementation of the same identity would move the crossover to a
-very small window. That is deliberately not done here — `sigtrade`'s stated
+very small window. That is deliberately not done here — `rollsig`'s stated
 non-goals include reimplementing low-level signature computation, and the
-value of `sigtrade.algebra` is that the algebra is legible.
+value of `rollsig.algebra` is that the algebra is legible.
 
 ### 3. What does the update cost in accuracy?
 

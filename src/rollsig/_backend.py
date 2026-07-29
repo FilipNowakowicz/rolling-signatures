@@ -1,6 +1,6 @@
 """Narrow interface over signature-computation backends.
 
-Everything else in sigtrade calls only `signature()` and `n_features()`.
+Everything else in rollsig calls only `signature()` and `n_features()`.
 Swapping or adding a backend means touching this file alone.
 """
 
@@ -11,7 +11,7 @@ from typing import Literal
 
 import numpy as np
 
-from sigtrade.algebra import (
+from rollsig.algebra import (
     _words,
     n_features,
     tensor_exp,
@@ -91,7 +91,6 @@ def _log_labels_roughpy(dim: int, depth: int) -> list[str]:
 
 
 def _log_signature_roughpy(path: np.ndarray, depth: int) -> np.ndarray:
-    dim = path.shape[1]
     ctx, sig = _roughpy_signature(path, depth)
     logsig = ctx.to_logsignature(sig)
     basis = ctx.lie_basis
@@ -145,7 +144,7 @@ def _signature_levels_numpy(path: np.ndarray, depth: int) -> list[np.ndarray]:
 
     Multiplies the truncated tensor exponentials of every path increment --
     Chen's identity as an algorithm (docs/notes.html s1.6, s3.3). The algebra
-    itself lives in `sigtrade.algebra`; this is the loop over increments that
+    itself lives in `rollsig.algebra`; this is the loop over increments that
     turns a path into an element of it.
     """
     dim = path.shape[1]

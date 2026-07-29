@@ -162,7 +162,7 @@ def test_features_depend_only_on_the_segment_they_describe(orvp_root, tmp_path):
 
 
 def test_signature_features_have_the_advertised_shape(orvp_root):
-    from sigtrade import n_log_features
+    from rollsig import n_log_features
 
     book = data.load_book(0, orvp_root)
     grid = data.wap_grid(book)
@@ -324,7 +324,7 @@ def test_channel_grids_reject_an_unknown_channel(orvp_root):
 
 def test_multisignature_features_have_the_advertised_shape(orvp_root):
     """Feature count is Witt's formula on the *joint* path's dimension."""
-    from sigtrade import n_log_features
+    from rollsig import n_log_features
 
     grids = data.channel_grids(data.load_book(0, orvp_root))
     spec = features.MultiSignatureSpec()

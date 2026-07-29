@@ -28,14 +28,14 @@ import pandas as pd
 SECONDS_PER_SEGMENT = 600
 """Length of an ORVP segment. The competition's buckets are 10 minutes."""
 
-_ENV_VAR = "SIGTRADE_ORVP_DIR"
+_ENV_VAR = "ROLLSIG_ORVP_DIR"
 _DEFAULT_DIR = Path("data/orvp")
 
 
 def data_dir() -> Path:
     """Directory holding the extracted competition files.
 
-    Override with the `SIGTRADE_ORVP_DIR` environment variable. The expected
+    Override with the `ROLLSIG_ORVP_DIR` environment variable. The expected
     layout is the competition zip's own:
 
         <dir>/train.csv

@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from sigtrade import SignatureTransformer
-from sigtrade._backend import n_features, n_log_features, signature
+from rollsig import SignatureTransformer
+from rollsig._backend import n_features, n_log_features, signature
 
 
 @pytest.fixture

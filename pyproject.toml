@@ -3,8 +3,8 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sigtrade"
-version = "0.2.0"
+name = "rollsig"
+version = "0.3.0"
 description = "Causal, rolling-window path-signature features for financial time series"
 readme = "README.md"
 license = { file = "LICENSE" }

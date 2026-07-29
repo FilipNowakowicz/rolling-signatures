@@ -1,4 +1,4 @@
-<title>sigtrade &mdash; Working Notes, Part III: The Streaming Engine</title>
+<title>rollsig &mdash; Working Notes, Part III: The Streaming Engine</title>
 <style>
   :root {
     --bg: #f5f6f7;
@@ -318,7 +318,7 @@
 <div class="page">
 
 <header class="masthead">
-  <span class="eyebrow">sigtrade &middot; working notes &middot; part III</span>
+  <span class="eyebrow">rollsig &middot; working notes &middot; part III</span>
   <h1>The Streaming Engine</h1>
   <span class="subtitle">Part III of the working notes &mdash; v0.3, the sliding-window signature. Part I (the algebra, and building v0.1) is in <code>docs/notes.html</code>; Part II (the Optiver benchmark) in <code>docs/notes-orvp.html</code>. Last updated 29 July 2026.</span>
 </header>
@@ -386,7 +386,7 @@
 
 <section id="ch10-3">
   <h3><span class="sec-no">10.3</span> Preprocessing arrives in blocks</h3>
-  <p>The identity in &sect;10.1 is about the raw window. <code>sigtrade</code>'s windows are not raw &mdash; the ORVP arm feeds a time-augmented, lead-lag embedded path, and the whole point of the library is that those defaults are the finance-facing part. So the question is whether preprocessing destroys the decomposition, and the answer is that it does not: each raw increment <i>d</i> maps to a fixed-size <i>block</i> of preprocessed increments, independent of everything else in the window.</p>
+  <p>The identity in &sect;10.1 is about the raw window. <code>rollsig</code>'s windows are not raw &mdash; the ORVP arm feeds a time-augmented, lead-lag embedded path, and the whole point of the library is that those defaults are the finance-facing part. So the question is whether preprocessing destroys the decomposition, and the answer is that it does not: each raw increment <i>d</i> maps to a fixed-size <i>block</i> of preprocessed increments, independent of everything else in the window.</p>
 <pre><code>plain      d  ->  [d]
 time-aug   d  ->  [(d, dt)]
 lead-lag   d  ->  [(d, 0), (0, d)]
@@ -459,7 +459,7 @@ both       d  ->  [(d, dt, 0, 0), (0, 0, d, dt)]</code></pre>
   <p>Below the crossover, recomputing the whole window in C beats updating it in Python, asymptotics notwithstanding. This is not a defect to be apologised for; it is what the numbers say, and it is exactly the kind of claim that gets checked in an interview. What it changes is the code:</p>
   <div class="note"><b>Which method gets used.</b> <code>method="auto"</code> no longer means &ldquo;stream whenever streaming can reproduce the configuration.&rdquo; It reads this table. With <code>backend="iisignature"</code> it recomputes below the measured crossover window &mdash; 1,200 at depth 2, 600 at depth 3 &mdash; and streams at or above it; against RoughPy and numpy, which streaming beat at every window measured, it streams everywhere. The thresholds are the first windows at which streaming was measured to <i>win</i>, not interpolated midpoints, so the rule errs towards the compiled route, and depths outside the measured 2&ndash;3 range reuse the nearest measured depth rather than extrapolating. <code>method="batch"</code> and <code>method="streaming"</code> remain authoritative and override it. The two routes agree to floating-point noise, so this is purely a speed decision &mdash; and a test pins the constants in <code>transformer.py</code> against <code>results/streaming.json</code>, so the code cannot drift away from the measurement it claims to follow.</div>
   <p>One thing the rule deliberately does not do is measure anything at fit time. It is a lookup on <code>(backend, window, depth)</code>, so the same estimator always resolves to the same route, whatever machine or data it meets; <code>method_</code> on the fitted estimator says which. The measurement behind it is at four preprocessed channels &mdash; ORVP's configuration &mdash; and a much wider path raises the streaming constant faster than the batch one, which is a limit of the calibration worth knowing before trusting <code>auto</code> there.</p>
-  <p>The other thing the table shows is where the ceiling is. The streaming update is dozens of small numpy calls, each with a fixed interpreter overhead of a microsecond or two, and that overhead is essentially the entire cost. A compiled implementation of the same identity would move the crossover to a very small window. That is a natural next step and it is deliberately not taken here: the point of this module is that the algebra is legible, and <code>sigtrade</code>'s stated non-goal is reimplementing low-level signature computation.</p>
+  <p>The other thing the table shows is where the ceiling is. The streaming update is dozens of small numpy calls, each with a fixed interpreter overhead of a microsecond or two, and that overhead is essentially the entire cost. A compiled implementation of the same identity would move the crossover to a very small window. That is a natural next step and it is deliberately not taken here: the point of this module is that the algebra is legible, and <code>rollsig</code>'s stated non-goal is reimplementing low-level signature computation.</p>
 </section>
 
 <section id="ch11-4">
@@ -528,14 +528,14 @@ both       d  ->  [(d, dt, 0, 0), (0, 0, d, dt)]</code></pre>
 
 <section id="ch12-3">
   <h3><span class="sec-no">12.3</span> Where v0.3 stands</h3>
-  <p>Shipped: <code>sigtrade.algebra</code>, the truncated tensor algebra as an object you can call &mdash; multiply, inverse, exp, log, dilate &mdash; with the group laws as property-based tests rather than comments; and <code>sigtrade.streaming</code>, which turns it into <code>StreamingSignature</code>, <code>rolling_signature</code>, <code>suffix_signature</code> and <code>nested_suffix_signatures</code>. <code>SignatureTransformer</code> gained <code>method</code>, and for plain signature output against the default backend it resolves to streaming, which means the v0.1 test suite has been re-running the v0.3 code path from the moment it was wired in.</p>
+  <p>Shipped: <code>rollsig.algebra</code>, the truncated tensor algebra as an object you can call &mdash; multiply, inverse, exp, log, dilate &mdash; with the group laws as property-based tests rather than comments; and <code>rollsig.streaming</code>, which turns it into <code>StreamingSignature</code>, <code>rolling_signature</code>, <code>suffix_signature</code> and <code>nested_suffix_signatures</code>. <code>SignatureTransformer</code> gained <code>method</code>, and for plain signature output against the default backend it resolves to streaming, which means the v0.1 test suite has been re-running the v0.3 code path from the moment it was wired in.</p>
   <p>Not shipped, and scoped out rather than overlooked: streaming log-signatures (&sect;10.4), streaming with a basepoint (&sect;10.4), a constant-time warm-up under time augmentation (&sect;10.3), and a compiled implementation (&sect;11.3). Each has a route; none is built.</p>
   <p>The claim v0.3 supports, stated as narrowly as it deserves: the group structure of the tensor algebra makes a rolling signature cost O(1) per tick in the steady state &mdash; O(1) amortised with re-anchoring on, and after an O(<i>w</i>) warm-up under time augmentation &mdash; instead of O(window) forever; the flatness is measured rather than asserted, and so is the 129&times; it buys over the default backend at window 1,200 and the crossover below which a compiled backend still wins; the numerical price is quantified and bounded; and one prediction the project made about itself in v0.2 turned out to be wrong and has been retracted rather than quietly dropped.</p>
 </section>
 </div>
 
 <footer>
-  <span>Part III of the sigtrade working notes. Part I &mdash; the algebra, and building the v0.1 transformer &mdash; is <code>docs/notes.html</code>, chapters 1&ndash;5; Part II &mdash; the Optiver benchmark &mdash; is <code>docs/notes-orvp.html</code>, chapters 6&ndash;9.</span>
+  <span>Part III of the rollsig working notes. Part I &mdash; the algebra, and building the v0.1 transformer &mdash; is <code>docs/notes.html</code>, chapters 1&ndash;5; Part II &mdash; the Optiver benchmark &mdash; is <code>docs/notes-orvp.html</code>, chapters 6&ndash;9.</span>
   <span>Generated from live Python sessions (Python 3.14.6, NixOS). Benchmark code and reproduction instructions: <code>benchmarks/streaming/</code>.</span>
 </footer>
 

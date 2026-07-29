@@ -15,11 +15,11 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 
-from sigtrade import SignatureTransformer, signature
-from sigtrade.algebra import n_features, tensor_inverse, tensor_multiply
-from sigtrade.preprocessing import preprocess_path
-from sigtrade.transformer import _STREAMING_WINS_ABOVE
-from sigtrade.streaming import (
+from rollsig import SignatureTransformer, signature
+from rollsig.algebra import n_features, tensor_inverse, tensor_multiply
+from rollsig.preprocessing import preprocess_path
+from rollsig.transformer import _STREAMING_WINS_ABOVE
+from rollsig.streaming import (
     StreamingSignature,
     _block_inverse,
     _block_signature,
@@ -344,7 +344,7 @@ def test_chens_identity_composes_the_two_ends_of_a_window(series):
     streaming update is that product rearranged."""
     depth, dim = 3, 2
     left, right = series[:30], series[29:]
-    from sigtrade._backend import _signature_levels_numpy
+    from rollsig._backend import _signature_levels_numpy
 
     product = tensor_multiply(
         _signature_levels_numpy(left, depth), _signature_levels_numpy(right, depth), dim, depth

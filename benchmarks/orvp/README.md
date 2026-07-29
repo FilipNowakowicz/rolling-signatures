@@ -1,12 +1,12 @@
 # ORVP benchmark
 
-The v0.2 headline benchmark: do path-signature features improve realized
+The headline benchmark: do path-signature features improve realized
 volatility forecasts on the Kaggle [Optiver Realized Volatility
 Prediction](https://www.kaggle.com/competitions/optiver-realized-volatility-prediction)
 dataset, against reproduced baselines, under the competition's own metric?
 
 This directory is research code. It is deliberately *not* part of the
-installable `sigtrade` package — it consumes `sigtrade`'s public API exactly
+installable `rollsig` package — it consumes `rollsig`'s public API exactly
 as an outside user would.
 
 ## Why this task
@@ -43,7 +43,7 @@ subset anyway: 20 stocks is a few hundred megabytes against the full
 archive's several gigabytes. `train.csv` is fetched first because the subset
 is drawn from the stock ids that actually appear in it.
 
-`SIGTRADE_ORVP_DIR` points every module at an existing copy. The expected
+`ROLLSIG_ORVP_DIR` points every module at an existing copy. The expected
 layout is the competition archive's own:
 
 ```
@@ -88,7 +88,7 @@ equally, since each stock has its own baseline volatility level.
 | `naive` | Predict the observed window's realized volatility. No model. Volatility is strongly persistent, so this is a hard floor. |
 | `har` | HAR-RV-style: realized volatility over nested suffix windows (600/300/150/60/30 s), plus activity and quarticity terms. |
 | `book` | Reproduced top-solution-style order-book and trade aggregates: WAP realized volatility at both levels, relative spread, depth imbalance, trade intensity, over nested windows. |
-| `sig` | `sigtrade` log-signatures of the lead-lag, time-augmented log-WAP path over the same nested windows. Depth 3. |
+| `sig` | `rollsig` log-signatures of the lead-lag, time-augmented log-WAP path over the same nested windows. Depth 3. |
 | `sig+har`, `sig+book`, `sig+book+har` | Marginal value: what signatures add *on top of* a baseline, which is the question that actually matters. |
 | `multisig` | Log-signatures of the *joint* (log-WAP, spread, imbalance) path over the same windows. Depth 2. |
 | `multisig+har`, `multisig+book`, `multisig+book+har` | The same marginal-value question for the multichannel arm. |

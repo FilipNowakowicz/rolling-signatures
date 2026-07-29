@@ -7,7 +7,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils.validation import check_array, check_is_fitted
 
-from sigtrade._backend import (
+from rollsig._backend import (
     _LOG_LABELS,
     Backend,
     _words,
@@ -16,8 +16,8 @@ from sigtrade._backend import (
     n_log_features,
     signature,
 )
-from sigtrade.preprocessing import preprocess_path
-from sigtrade.streaming import Refresh, StreamingSignature
+from rollsig.preprocessing import preprocess_path
+from rollsig.streaming import Refresh, StreamingSignature
 
 Output = Literal["signature", "log_signature"]
 Method = Literal["auto", "batch", "streaming"]
@@ -61,7 +61,7 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
     available). The row at `t` is a function of `X[:t+1]` only.
 
     `method` selects how those rows get computed -- see `_select_method` and
-    `sigtrade.streaming`. The two routes agree to floating-point noise; which
+    `rollsig.streaming`. The two routes agree to floating-point noise; which
     one is faster depends on the window length, the depth and the backend, so
     `method="auto"` follows the crossover `benchmarks/streaming/` measured.
     `method="batch"` and `method="streaming"` are authoritative and are never
@@ -137,7 +137,7 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
         return out
 
     def _transform_streaming(self, X):
-        """Slide one window along the series (`sigtrade.streaming`).
+        """Slide one window along the series (`rollsig.streaming`).
 
         `backend` is not consulted here: a sliding update is arithmetic in the
         tensor algebra, not a call into a signature engine. The results agree

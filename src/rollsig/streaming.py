@@ -4,7 +4,7 @@ Recomputing a rolling signature from scratch at every tick costs O(window),
 and almost all of that work is re-traversing path the previous tick already
 traversed. The tensor algebra makes the redundancy removable, because a
 signature is a grouplike element and both ends of a window are group
-operations (`sigtrade.algebra`):
+operations (`rollsig.algebra`):
 
     S(new window) = S(departing increment)^-1 * S(old window) * S(arriving increment)
 
@@ -40,7 +40,7 @@ measures rather than assumes:
    `tensor_inverse` recursion. The general inverse is still what makes the
    identity true, and `suffix_signature` below is the case where it is the
    only route.
-2. Preprocessing survives the move. Every option in `sigtrade.preprocessing`
+2. Preprocessing survives the move. Every option in `rollsig.preprocessing`
    except `basepoint` turns one raw increment into a fixed-size *block* of
    preprocessed increments, so sliding stays a constant-size operation.
    `basepoint` does not: it changes how the window's left boundary is
@@ -60,8 +60,8 @@ from typing import Literal
 
 import numpy as np
 
-from sigtrade._backend import _signature_levels_numpy
-from sigtrade.algebra import (
+from rollsig._backend import _signature_levels_numpy
+from rollsig.algebra import (
     Levels,
     dilate,
     from_levels,
@@ -72,7 +72,7 @@ from sigtrade.algebra import (
     tensor_multiply,
     to_levels,
 )
-from sigtrade.preprocessing import preprocess_path
+from rollsig.preprocessing import preprocess_path
 
 Refresh = Literal["auto"] | int | None
 
