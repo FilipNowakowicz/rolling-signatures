@@ -875,7 +875,7 @@ def test_log_signature_is_primitive_under_shuffle(path, u, v):
     log_full = dict(zip(_words(2, 3), _log_signature_full_numpy(path, depth=3)))
     total = sum(log_full[w] for w in _shuffles(u, v))
     assert total == pytest.approx(0.0, abs=1e-6)</code></pre>
-  <p>This is the first <code>hypothesis</code>-based property test (flagged as "not yet built" since &sect;2.4): rather than one fixed path, it generates 50 random 6-point paths and random word pairs and checks the shuffle-vanishing identity holds on all of them. It's a meaningfully different check from &sect;4.5's bracket-expansion test &mdash; that one catches indexing bugs in the RoughPy extraction; this one catches errors in the log-series arithmetic itself (a wrong sign or a missing <code>/k</code> would break primitivity, but wouldn't necessarily break the single fixed-path bracket-expansion numbers, which is why both exist).</p>
+  <p>This is the first <code>hypothesis</code>-based property test (listed as still open since &sect;2.4): rather than one fixed path, it generates 50 random 6-point paths and random word pairs and checks the shuffle-vanishing identity holds on all of them. It's a meaningfully different check from &sect;4.5's bracket-expansion test &mdash; that one catches indexing bugs in the RoughPy extraction; this one catches errors in the log-series arithmetic itself (a wrong sign or a missing <code>/k</code> would break primitivity, but wouldn't necessarily break the single fixed-path bracket-expansion numbers, which is why both exist).</p>
 </section>
 
 <section id="ch4-7">
@@ -914,7 +914,7 @@ out[t] = compute(path, self.depth, backend=self.backend)</code></pre>
     <math display="block"><mrow><mi>exp</mi><mo>(</mo><mi>a</mi><mo>)</mo><mo>&middot;</mo><mi>exp</mi><mo>(</mo><mi>b</mi><mo>)</mo><mo>=</mo><mi>exp</mi><mo>(</mo><mi>a</mi><mo>+</mo><mi>b</mi><mo>)</mo></mrow></math>
   </div>
   <p>the same identity &sect;1.6/&sect;3.3 use for concatenating unrelated increments, specialized to the case where the increments happen to be parallel. <code>test_signature_invariant_under_time_reparametrization</code> (<code>tests/test_backend.py</code>) turns this into a <code>hypothesis</code> property test: it generates random 5-point paths and random sets of extra points inserted along existing segments, and asserts the resampled path's signature matches the original's to <code>1e-8</code> &mdash; exact equality up to floating-point roundoff, not a loose tolerance standing in for an approximation.</p>
-  <p>All five oracles are now implemented. That closes out the "not yet built" line that has been carried forward since &sect;2.4.</p>
+  <p>All five oracles are now implemented. That closes the open-items line carried forward since &sect;2.4.</p>
 </section>
 
 <section id="ch5-2">
