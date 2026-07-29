@@ -547,7 +547,7 @@
     </math>
   </div>
   <span class="verified">&#10003; verified numerically &mdash; <code>iisignature.sigcombine</code></span>
-  <p>Split the path at index 5 into two halves, compute each signature separately, combine them via the tensor product &mdash; the result matches the whole-path signature to <code>8.8&times;10&#8315;&#8311;</code> (floating-point noise). This is the identity that makes signatures <b>grouplike</b>: they form a group under this product (identity = the level-0 term, inverse = the signature of the time-reversed path). It's exactly what a streaming/rolling-window update needs &mdash; drop the oldest segment by left-multiplying its group inverse, append the new one by right-multiplying &mdash; O(1) amortized per tick instead of recomputing the whole window (v0.3 on the roadmap).</p>
+  <p>Split the path at index 5 into two halves, compute each signature separately, combine them via the tensor product &mdash; the result matches the whole-path signature to <code>8.8&times;10&#8315;&#8311;</code> (floating-point noise). This is the identity that makes signatures <b>grouplike</b>: they form a group under this product (identity = the level-0 term, inverse = the signature of the time-reversed path). It's exactly what a streaming/rolling-window update needs &mdash; drop the oldest segment by left-multiplying its group inverse, append the new one by right-multiplying &mdash; O(1) per tick in the steady state, instead of recomputing the whole window (v0.3 on the roadmap).</p>
 </section>
 
 <section id="ch1-7">
@@ -630,7 +630,7 @@
   <pre><code>for t in range(n_samples):
     start = max(0, t + 1 - self.window)
     out[t] = signature(X[start : t + 1], self.depth, backend=self.backend)</code></pre>
-  <p>Row <i>t</i> is built only from <code>X[start : t+1]</code> &mdash; data up to and including <i>t</i>, never beyond it. This loops per-timestep and recomputes each window's signature from scratch (O(window) per tick) rather than vectorizing or reusing the previous window's result &mdash; deliberate for v0.1: the O(1)-per-tick version is exactly Chen's identity from &sect;1.6 (drop the departing segment via its group inverse, append the new one), and that's scoped as its own later chapter, not smuggled in early.</p>
+  <p>Row <i>t</i> is built only from <code>X[start : t+1]</code> &mdash; data up to and including <i>t</i>, never beyond it. This loops per-timestep and recomputes each window's signature from scratch (O(window) per tick) rather than vectorizing or reusing the previous window's result &mdash; deliberate for v0.1: the constant-per-tick version is exactly Chen's identity from &sect;1.6 (drop the departing segment via its group inverse, append the new one), and that's scoped as its own later chapter, not smuggled in early.</p>
   <div class="note">The proof that this is actually causal isn't a code-review argument, it's a test: <code>test_causal_alignment</code> in <code>tests/test_transformer.py</code> fits the transformer on a truncated prefix <code>series[:t+1]</code> and asserts the last row matches the row at index <i>t</i> from fitting on the full series. If any future change introduced lookahead, this test would catch it.</div>
 </section>
 
@@ -934,7 +934,7 @@ out[t] = compute(path, self.depth, backend=self.backend)</code></pre>
         <tr><td>correctness oracles</td><td>all five from ROADMAP.md v0.1: Chen's identity, shuffle identity, primitivity/free Lie algebra, time-reparametrization invariance, backend agreement</td></tr>
         <tr><td>transformer</td><td><code>signature</code> or <code>log_signature</code> output, causal by construction and by test, with basepoint/time-augmentation/lead-lag/rescale preprocessing</td></tr>
         <tr><td>math write-up</td><td>this document; no separate <code>docs/math.md</code></td></tr>
-        <tr><td>not yet built</td><td>PyPI publish (deferred, not forgotten), general Lyndon-basis reduction in numpy, iisignature log-signature support, rescale for log output, the O(1)-per-tick streaming engine (v0.3)</td></tr>
+        <tr><td>not yet built</td><td>PyPI publish (deferred, not forgotten), general Lyndon-basis reduction in numpy, iisignature log-signature support, rescale for log output, the streaming engine (v0.3)</td></tr>
       </tbody>
     </table>
   </div>

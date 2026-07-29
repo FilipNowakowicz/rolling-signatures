@@ -22,6 +22,35 @@ from sigtrade.streaming import Refresh, StreamingSignature
 Output = Literal["signature", "log_signature"]
 Method = Literal["auto", "batch", "streaming"]
 
+# Where `method="auto"` starts preferring the streaming engine, by backend and
+# depth. These are measurements, not guesses: `benchmarks/streaming/` records
+# the smallest window at which the streaming update beat each batch backend
+# (`results/streaming.json`, key `crossover_window`), and
+# `tests/test_streaming.py` pins this table against that file.
+#
+# Against the numpy reference and RoughPy, streaming won at *every* window
+# measured -- down to 10 -- so those backends have no threshold and `auto`
+# always streams. Against compiled `iisignature` there is a real crossover,
+# because the update is interpreted Python while the recompute is one C call.
+#
+# Two deliberate conservatisms, both favouring the compiled batch route:
+# the entries are the first window at which streaming was measured to *win*
+# rather than an interpolated midpoint, and depths outside the measured 2-3
+# range reuse the nearest measured depth instead of extrapolating the trend
+# (which points downwards, so the extrapolation would switch to streaming
+# sooner). The measurement is at four preprocessed channels, the ORVP
+# configuration; wider paths raise the streaming constant faster than the
+# batch one, so on those, pass `method` explicitly rather than trusting `auto`.
+_STREAMING_WINS_ABOVE: dict[str, dict[int, int]] = {"iisignature": {2: 1200, 3: 600}}
+
+
+def _streaming_threshold(backend: Backend, depth: int) -> int:
+    """Smallest window for which `method='auto'` prefers streaming."""
+    by_depth = _STREAMING_WINS_ABOVE.get(backend)
+    if by_depth is None:
+        return 1
+    return by_depth[min(max(depth, min(by_depth)), max(by_depth))]
+
 
 class SignatureTransformer(BaseEstimator, TransformerMixin):
     """Causal, rolling-window path-signature features.
@@ -31,10 +60,14 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
     points at the start of the series, when a full window isn't yet
     available). The row at `t` is a function of `X[:t+1]` only.
 
-    `method` selects how those rows get computed -- see `_validate_parameters`
-    and `sigtrade.streaming`. The two routes agree to floating-point noise;
-    which one is faster depends on the window length and the backend, and
-    `benchmarks/streaming/` measures where the crossover falls.
+    `method` selects how those rows get computed -- see `_select_method` and
+    `sigtrade.streaming`. The two routes agree to floating-point noise; which
+    one is faster depends on the window length, the depth and the backend, so
+    `method="auto"` follows the crossover `benchmarks/streaming/` measured.
+    `method="batch"` and `method="streaming"` are authoritative and are never
+    overridden by that rule.
+
+    The resolved route is recorded on the fitted estimator as `method_`.
     """
 
     def __init__(
@@ -64,7 +97,7 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         X = check_array(X)
         self._validate_parameters()
-        self.method_ = "streaming" if self._streaming_eligible() and self.method != "batch" else "batch"
+        self.method_ = self._select_method()
         self.n_features_in_ = X.shape[1]
         transformed_dim = self.n_features_in_ + int(self.time_augmentation)
         if self.lead_lag_transform:
@@ -121,20 +154,47 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
         )
         return engine.extend(X)
 
+    def _select_method(self) -> str:
+        """Resolve `method` to the route `transform` will take.
+
+        Deterministic: a function of the constructor arguments alone, with no
+        timing at fit time and no dependence on the data.
+
+        `"batch"` and `"streaming"` are authoritative -- an explicit choice is
+        honoured whatever the crossover says (`"streaming"` on a configuration
+        the engine does not support is rejected in `_validate_parameters`
+        rather than silently downgraded). `"auto"` streams only where streaming
+        was measured to be the faster route: see `_STREAMING_WINS_ABOVE`.
+        """
+        if not self._streaming_eligible():
+            return "batch"
+        if self.method != "auto":
+            return self.method
+        return "streaming" if self.window >= _streaming_threshold(self.backend, self.depth) else "batch"
+
     def _streaming_eligible(self) -> bool:
-        """Whether the streaming engine can reproduce this configuration.
+        """Whether the streaming engine supports this configuration.
 
-        Two exclusions, both structural rather than unfinished work:
+        Two exclusions. Neither is a theorem that streaming *cannot* be done
+        here -- both are limits of the current streaming implementation, and
+        both have a route that was not taken in v0.3:
 
-        * `basepoint` pins the path to the origin, so sliding the window
-          rewrites its leading increment instead of dropping it -- the window
-          is no longer a sub-path of the previous one.
-        * `output='log_signature'` returns coordinates in a backend's own basis
-          of the free Lie algebra (see `_backend.log_signature`), and the
-          streaming update lives in the full tensor algebra. Taking the log of
-          the streamed tensor would land in canonical word coordinates, which
-          are *not* the columns the batch route produces, so the two would
-          silently disagree.
+        * `basepoint` changes how the left boundary of the window is
+          represented: it pins the path to the origin, so sliding rewrites the
+          leading increment instead of dropping it, and the new window is not a
+          sub-path of the old one. Supporting it would mean cancelling and
+          reinstating that leading increment on every tick rather than reusing
+          the sliding identity as it stands.
+        * `output='log_signature'` returns coordinates in a *backend's* own
+          basis of the free Lie algebra (see `_backend.log_signature`), while
+          the streaming engine maintains the full tensor signature. Taking the
+          log of the streamed tensor lands in canonical word coordinates, which
+          are not the columns the batch route produces, so the two would
+          silently disagree; matching them needs a basis conversion into
+          whichever basis the configured backend uses.
+
+        Both fall back to batch under `method="auto"`, which is exact, so
+        neither is a correctness gap -- only a performance one.
         """
         return not self.basepoint and self.output == "signature"
 
@@ -167,6 +227,6 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
         if self.method == "streaming" and not self._streaming_eligible():
             reason = "basepoint=True" if self.basepoint else "output='log_signature'"
             raise ValueError(
-                f"method='streaming' does not support {reason}; use method='batch' or 'auto' "
-                "(see SignatureTransformer._streaming_eligible)"
+                f"the current streaming implementation does not support {reason}; use "
+                "method='batch' or 'auto' (see SignatureTransformer._streaming_eligible)"
             )

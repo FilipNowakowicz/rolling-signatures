@@ -6,6 +6,9 @@ batch path -- which is itself pinned against RoughPy, `iisignature` and the
 property-based oracles in `test_backend.py`.
 """
 
+import json
+from pathlib import Path
+
 import numpy as np
 import pytest
 from hypothesis import given, settings
@@ -15,6 +18,7 @@ from hypothesis.extra.numpy import arrays
 from sigtrade import SignatureTransformer, signature
 from sigtrade.algebra import n_features, tensor_inverse, tensor_multiply
 from sigtrade.preprocessing import preprocess_path
+from sigtrade.transformer import _STREAMING_WINS_ABOVE
 from sigtrade.streaming import (
     StreamingSignature,
     _block_inverse,
@@ -122,6 +126,31 @@ def test_auto_refresh_re_anchors_once_per_window(series):
     assert engine.n_recomputes_ == pytest.approx(len(series) // 10, abs=1)
 
 
+def test_time_augmented_warm_up_recomputes_and_the_steady_state_slides():
+    """The scope of the constant-cost claim, pinned as behaviour.
+
+    `time_augment` rescales its channel to [0, 1] over however many points have
+    arrived, so every tick before the window fills changes the increments
+    already accumulated and cannot be slid -- the engine recomputes instead.
+    That is why the claim is O(1) *steady-state* per tick rather than O(1) from
+    tick 1. After the window fills it slides, and with `refresh_every=None`
+    never recomputes again. Without time augmentation even the warm-up slides.
+    """
+    window, ticks = 10, 60
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal((ticks, 1)).cumsum(axis=0)
+
+    augmented = StreamingSignature(window, 2, 1, time_augmentation=True, refresh_every=None)
+    augmented.extend(X)
+    # Ticks 1..window-1 recompute; tick 0 has no increment to accumulate, and
+    # every tick from window onwards slides.
+    assert augmented.n_recomputes_ == window - 1
+
+    plain = StreamingSignature(window, 2, 1, refresh_every=None)
+    plain.extend(X)
+    assert plain.n_recomputes_ == 0
+
+
 def test_refresh_does_not_change_the_answer(series):
     for refresh in (None, "auto", 3):
         streamed = rolling_signature(series, window=8, depth=3, refresh_every=refresh, time_augmentation=True)
@@ -195,6 +224,92 @@ def test_transformer_defaults_to_streaming_and_agrees_with_batch(series):
     batch = SignatureTransformer(window=9, depth=3, lead_lag_transform=True, method="batch").fit(series)
     assert batch.method_ == "batch"
     assert auto.transform(series) == pytest.approx(batch.transform(series), abs=1e-9)
+
+
+@pytest.mark.parametrize(
+    "backend, window, depth, expected",
+    [
+        # RoughPy and numpy: streaming won at every window measured, so `auto`
+        # streams everywhere, including at windows far below any crossover.
+        ("roughpy", 2, 2, "streaming"),
+        ("roughpy", 10, 3, "streaming"),
+        ("numpy", 10, 3, "streaming"),
+        ("numpy", 5000, 2, "streaming"),
+        # iisignature: compiled recompute wins below the measured crossover.
+        ("iisignature", 20, 2, "batch"),
+        ("iisignature", 1199, 2, "batch"),
+        ("iisignature", 1200, 2, "streaming"),
+        ("iisignature", 5000, 2, "streaming"),
+        ("iisignature", 599, 3, "batch"),
+        ("iisignature", 600, 3, "streaming"),
+        # Depths outside the measured 2-3 range reuse the nearest measured
+        # depth rather than extrapolating the trend.
+        ("iisignature", 600, 1, "batch"),
+        ("iisignature", 1200, 1, "streaming"),
+        ("iisignature", 599, 5, "batch"),
+        ("iisignature", 600, 5, "streaming"),
+    ],
+)
+def test_auto_follows_the_measured_crossover(series, backend, window, depth, expected):
+    """`method="auto"` is a speed decision, so it has to follow the speed data.
+
+    Before v0.3's polish pass `auto` streamed whenever streaming *could*
+    reproduce the configuration, which was wrong for the one backend that beats
+    it: `iisignature` recomputes in C, and below the crossover window measured
+    in `benchmarks/streaming/` that is the faster route.
+    """
+    estimator = SignatureTransformer(window=window, depth=depth, backend=backend).fit(series)
+    assert estimator.method_ == expected
+
+
+def test_auto_thresholds_match_the_committed_benchmark():
+    """The constants in `transformer.py` are a measurement, not a guess.
+
+    `benchmarks/streaming/results/streaming.json` records the smallest window
+    at which streaming beat each batch backend. If the benchmark is re-run and
+    the crossover moves, this fails rather than letting the docs and the code
+    drift apart.
+    """
+    results = Path(__file__).resolve().parents[1] / "benchmarks/streaming/results/streaming.json"
+    if not results.exists():  # pragma: no cover - the file is committed
+        pytest.skip("benchmark results not available")
+    measured = json.loads(results.read_text())["crossover_window"]
+
+    for depth, window in _STREAMING_WINS_ABOVE["iisignature"].items():
+        assert measured["iisignature"][str(depth)] == window
+    # RoughPy has no threshold in the table precisely because streaming won at
+    # the smallest window measured; if that stopped being true, one is needed.
+    smallest = min(row["window"] for row in json.loads(results.read_text())["cost_by_window"])
+    for window in measured["roughpy"].values():
+        assert window == smallest
+
+
+def test_explicit_method_overrides_the_crossover(series):
+    """`"batch"` and `"streaming"` are authoritative; `auto` is the only rule."""
+    short = SignatureTransformer(window=20, depth=2, backend="iisignature", method="streaming").fit(series)
+    assert short.method_ == "streaming"
+    long = SignatureTransformer(window=5000, depth=3, backend="roughpy", method="batch").fit(series)
+    assert long.method_ == "batch"
+
+
+def test_auto_selection_is_deterministic_and_data_independent(series):
+    """No timing at fit time: the route is a function of the parameters alone."""
+    for backend in ("roughpy", "iisignature"):
+        for window in (20, 600, 1200):
+            chosen = {
+                SignatureTransformer(window=window, depth=3, backend=backend).fit(data).method_
+                for data in (series, series[:10], series[:40] * 1e6)
+            }
+            assert len(chosen) == 1, f"{backend} window={window} resolved to {chosen}"
+
+
+def test_auto_batch_route_still_agrees_with_streaming(series):
+    """Where `auto` now picks batch, the two routes must still be the same
+    answer -- otherwise the selection rule would be changing results, not
+    just speed."""
+    auto = SignatureTransformer(window=8, depth=3, backend="numpy", method="batch", time_augmentation=True)
+    streamed = SignatureTransformer(window=8, depth=3, method="streaming", time_augmentation=True)
+    assert streamed.fit_transform(series) == pytest.approx(auto.fit_transform(series), abs=1e-10)
 
 
 def test_transformer_falls_back_to_batch_when_streaming_cannot_apply(series):
