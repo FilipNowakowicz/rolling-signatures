@@ -133,7 +133,8 @@ by chapter as the code was built: [`docs/notes.html`](docs/notes.html) (the
 algebra, worked from a live example, and the core transformer),
 [`docs/notes-orvp.html`](docs/notes-orvp.html) (the benchmark), and
 [`docs/notes-streaming.html`](docs/notes-streaming.html) (the streaming
-engine).
+engine). They render properly at
+**<https://filipnowakowicz.github.io/rolling-signatures/>**.
 
 ## Benchmark: Optiver realized volatility
 
