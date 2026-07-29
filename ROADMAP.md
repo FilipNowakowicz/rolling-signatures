@@ -164,13 +164,44 @@ This closes that, and adds the replication v0.2 lacked.
 
 ## v0.3 — streaming engine (Sept–Oct, interview-season depth)
 
-- [ ] Sliding-window signature updates via Chen's identity + group inverse
+- [x] Sliding-window signature updates via Chen's identity + group inverse
       of the departing segment. O(1) amortized per tick vs O(window)
-      recompute. Benchmark the speedup honestly (there's a numerical-
-      stability story here too — repeated group operations at high depth —
-      investigate and document it).
-- [ ] This is the "what did you actually do, mathematically?" answer: the
+      recompute. `sigtrade.algebra` (the truncated tensor algebra as an
+      object: multiply, inverse, exp, log, dilate) and `sigtrade.streaming`
+      (`StreamingSignature`, `rolling_signature`, `suffix_signature`,
+      `nested_suffix_signatures`), wired into `SignatureTransformer` as
+      `method="auto"|"batch"|"streaming"` — streaming is now the default for
+      `output="signature"`.
+- [x] Benchmark the speedup honestly — `benchmarks/streaming/`. **O(1) is
+      confirmed**: per-tick cost is flat from window 10 to window 1200, so
+      the win over recomputation grows without bound (452× against the
+      numpy reference and 129× against RoughPy at window 1200). **The honest
+      qualification**: the update is interpreted Python, so against
+      `iisignature`'s compiled recompute it only wins past a crossover
+      window — between 600 and 1200 at depth 2, between 300 and 600 at
+      depth 3. Below that, batch is faster despite being asymptotically
+      worse, and the README says so.
+- [x] Numerical-stability story, investigated rather than assumed. Drift
+      from repeated group operations is real and grows steeply in depth
+      (~1e-15 at depth 2, ~1e-9 at depth 5 over 20,000 unanchored ticks,
+      concentrated in the top level) and *quadratically* in tick count —
+      about ×4 per doubling, so a long stream does not grow out of it.
+      Re-anchoring on a from-scratch recomputation once per `window` ticks
+      pins it near machine precision and is still O(1) amortized, so it is
+      the default (`refresh_every="auto"`).
+- [x] Retracted a claim v0.2 made about v0.3: `docs/notes-orvp.html` §9.1
+      proposed removing the nested 600/300/150-window redundancy with group
+      inverses. Measured, that route is *slower* than the naive one — the
+      right decomposition for nested windows is disjoint chunks combined
+      forwards (no inverse), and even that loses to just calling
+      `iisignature` three times. Group inverses earn their keep on sliding
+      windows, where the shared part cannot be re-decomposed, and not here.
+      `nested_suffix_signatures` implements the chunked route; §11.3 of the
+      notes states the retraction.
+- [x] This is the "what did you actually do, mathematically?" answer: the
       group structure of the tensor algebra doing load-bearing work.
+      `tests/test_algebra.py` pins it as a group (two-sided inverse, the
+      antipode formula, inverse = signature of the reversed path).
 
 ## v0.4 — the honest secondary study: daily multi-asset trend
 

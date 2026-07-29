@@ -4,8 +4,8 @@
 
 > **Status: early development.** The v0.1 core computes causal rolling
 > signatures; v0.2 adds a benchmarked realized-volatility study on real
-> order-book data. The streaming engine is not implemented yet — see
-> [Progress](#progress).
+> order-book data; v0.3 adds the O(1)-per-tick streaming engine, which is
+> now the default. Not yet on PyPI — see [Progress](#progress).
 
 A `scikit-learn`-compatible library that turns financial time series into
 **causal, rolling-window path-signature features**, with O(1)-per-tick
@@ -43,7 +43,8 @@ scratch over the whole window.
    left-multiply by the inverse of the departing segment's signature and a
    right-multiply by the new increment, rather than an O(window)
    recomputation. No existing high-level library exposes this as a
-   rolling-feature API.
+   rolling-feature API. Implemented and measured in v0.3 — see
+   [Streaming engine](#streaming-engine-o1-per-tick).
 3. **Finance-specific defaults, evaluated honestly** — lead-lag
    transformation (recovers quadratic variation), time augmentation, and
    benchmarks that report negative results when signatures don't help,
@@ -62,8 +63,9 @@ what makes O(1) streaming updates possible, and the shuffle relations are
 used directly as a correctness oracle in tests. The full expository writeup
 is [`docs/notes.html`](docs/notes.html) — the algebra worked from a live
 example, and the v0.1 build — continued in
-[`docs/notes-orvp.html`](docs/notes-orvp.html) for the benchmark. There is
-no separate `docs/math.md`; these are it.
+[`docs/notes-orvp.html`](docs/notes-orvp.html) for the benchmark and
+[`docs/notes-streaming.html`](docs/notes-streaming.html) for the streaming
+engine. There is no separate `docs/math.md`; these are it.
 
 ## Benchmark: Optiver realized volatility
 
@@ -180,6 +182,54 @@ here (a `time_id` is one instant of market time across all 112 stocks, and
 volatility is strongly correlated cross-sectionally), but it does not
 simulate deployment across time.
 
+## Streaming engine (O(1) per tick)
+
+A rolling window of *w* points advancing by one shares *w*−1 points with its
+predecessor, and Chen's identity says the shared part need not be re-read:
+
+    S(next window) = S(departing increment)⁻¹ · S(window) · S(arriving increment)
+
+Neither factor depends on *w*, so the per-tick cost is a function of `depth`
+and the channel count alone. `sigtrade.algebra` is the truncated tensor
+algebra as a callable object (multiply, group inverse, exp, log, dilate, with
+the group laws as property-based tests); `sigtrade.streaming` turns it into a
+rolling-feature API, and `SignatureTransformer` uses it by default.
+
+**The claim holds and it is the strong one.** Per-tick cost is flat from
+window 10 to window 1200 — 127 → 135 µs at depth 2, 203 → 202 µs at depth 3 —
+while recomputation grows with the window exactly as it must:
+
+| depth | window | streaming | batch numpy | batch `iisignature` | batch RoughPy |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 3 | 10 | 203.0 | 722.5 | 27.1 | 528.0 |
+| 3 | 300 | 194.4 | 22483.7 | 172.5 | 6673.0 |
+| 3 | 1200 | 201.9 | 91302.8 | 628.0 | 25987.6 |
+
+**The honest qualification, stated in the same breath:** the update is
+interpreted Python doing dozens of small numpy calls, so against
+`iisignature`'s compiled recompute it wins only past a crossover window —
+between 600 and 1200 at depth 2, between 300 and 600 at depth 3. Below that,
+batch is faster despite being asymptotically worse, and `method="batch"` is
+the right choice. Against RoughPy (the default backend) streaming wins at
+every window measured, up to 129×.
+
+**The numerical price is quantified, not waved away.** Repeated group
+operations drift from a from-scratch recomputation by ~3 orders of magnitude
+per level of depth, and *quadratically* in unanchored ticks (×4 per doubling).
+Re-anchoring on a real recomputation once per `window` ticks is still O(1)
+amortized, costs 23–37% per tick, and pins the drift at 7e-15 at every depth
+— so it is the default (`refresh_every="auto"`).
+
+**And one retraction.** `docs/notes-orvp.html` §9.1 predicted that group
+inverses would remove the redundancy in the ORVP benchmark's nested
+600/300/150-second windows. Measured, that route saves nothing; the right
+decomposition for a *nested* family is disjoint chunks combined forwards, with
+no inverse at all — and even that loses by 80× to simply calling `iisignature`
+three times. Group inverses earn their keep on sliding windows, where the
+shared part cannot be re-decomposed, and not here. Full study:
+[`benchmarks/streaming/`](benchmarks/streaming/README.md); reasoning:
+[`docs/notes-streaming.html`](docs/notes-streaming.html).
+
 ## Roadmap
 
 See [`ROADMAP.md`](ROADMAP.md) for the versioned build plan (v0.1 core
@@ -210,7 +260,15 @@ rationale in [`CLAUDE.md`](CLAUDE.md).
       extra channels help signatures, but not enough to beat the order-book
       aggregates on any subset. **ORVP is closed** — no further feature
       search on this dataset.
-- [ ] v0.3 — O(1)-per-tick streaming signature updates
+- [x] v0.3 — O(1)-per-tick streaming signature updates. `sigtrade.algebra`
+      (the truncated tensor algebra, with the group laws under property-based
+      test) and `sigtrade.streaming` (`StreamingSignature`,
+      `rolling_signature`, `suffix_signature`, `nested_suffix_signatures`),
+      wired into `SignatureTransformer` as `method="auto"|"batch"|"streaming"`.
+      Per-tick cost measured flat across a 120× range of window lengths;
+      drift measured, bounded and priced. Reported above with the crossover
+      against a compiled backend and one retracted v0.2 prediction.
+      Write-up: [`docs/notes-streaming.html`](docs/notes-streaming.html).
 - [ ] v0.4 — daily multi-asset-trend secondary study
 - [ ] v0.5 — stretch goals
 
@@ -237,8 +295,27 @@ features = SignatureTransformer(
 ).fit_transform(prices)
 ```
 
+Rows are computed by sliding one window along the series rather than
+rebuilding it at every step. To recompute instead — worth it for short
+windows with `iisignature` installed, see above — pass `method="batch"`. The
+two agree to floating-point noise; `method="batch"` is also the automatic
+fallback for `basepoint=True` and `output="log_signature"`, neither of which
+has a streaming form.
+
+The engine is also usable directly, on a stream that arrives a tick at a time:
+
+```python
+from sigtrade import StreamingSignature
+
+engine = StreamingSignature(window=600, depth=3, dim=1, time_augmentation=True)
+for price in feed:
+    features = engine.update([price])   # O(1) in the window length
+```
+
 For tests and small examples, pass `backend="numpy"` to use the bundled
-reference implementation. Production use defaults to RoughPy.
+reference implementation. Batch computation defaults to RoughPy; the
+streaming path is backend-independent, since a sliding update is arithmetic
+in the tensor algebra rather than a call into a signature engine.
 
 ## Non-goals
 

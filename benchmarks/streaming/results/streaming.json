@@ -1,0 +1,518 @@
+{
+  "config": {
+    "dim": 1,
+    "preprocessing": {
+      "time_augmentation": true,
+      "lead_lag_transform": true
+    },
+    "windows": [
+      10,
+      30,
+      100,
+      300,
+      600,
+      1200
+    ],
+    "depths": [
+      2,
+      3
+    ],
+    "backends": [
+      "numpy",
+      "iisignature",
+      "roughpy"
+    ],
+    "budget_seconds": 1.5,
+    "seed": 0,
+    "python": "3.14.6",
+    "platform": "Linux-6.18.39-x86_64-with-glibc2.42",
+    "numpy": "2.5.1"
+  },
+  "cost_by_window": [
+    {
+      "depth": 2,
+      "window": 10,
+      "streaming": 127.02,
+      "streaming_ticks": 3000,
+      "streaming_refresh": 157.41,
+      "streaming_refresh_ticks": 3000,
+      "batch_numpy": 458.8,
+      "batch_numpy_ticks": 3000,
+      "batch_iisignature": 22.41,
+      "batch_iisignature_ticks": 3000,
+      "batch_roughpy": 216.26,
+      "batch_roughpy_ticks": 3000
+    },
+    {
+      "depth": 2,
+      "window": 30,
+      "streaming": 129.36,
+      "streaming_ticks": 3000,
+      "streaming_refresh": 168.94,
+      "streaming_refresh_ticks": 3000,
+      "batch_numpy": 1383.56,
+      "batch_numpy_ticks": 1085,
+      "batch_iisignature": 25.62,
+      "batch_iisignature_ticks": 3000,
+      "batch_roughpy": 426.73,
+      "batch_roughpy_ticks": 3000
+    },
+    {
+      "depth": 2,
+      "window": 100,
+      "streaming": 127.66,
+      "streaming_ticks": 3000,
+      "streaming_refresh": 171.77,
+      "streaming_refresh_ticks": 3000,
+      "batch_numpy": 4726.21,
+      "batch_numpy_ticks": 318,
+      "batch_iisignature": 37.91,
+      "batch_iisignature_ticks": 3000,
+      "batch_roughpy": 1163.92,
+      "batch_roughpy_ticks": 1289
+    },
+    {
+      "depth": 2,
+      "window": 300,
+      "streaming": 130.29,
+      "streaming_ticks": 3000,
+      "streaming_refresh": 173.4,
+      "streaming_refresh_ticks": 3000,
+      "batch_numpy": 14146.01,
+      "batch_numpy_ticks": 107,
+      "batch_iisignature": 71.83,
+      "batch_iisignature_ticks": 3000,
+      "batch_roughpy": 3280.71,
+      "batch_roughpy_ticks": 458
+    },
+    {
+      "depth": 2,
+      "window": 600,
+      "streaming": 132.02,
+      "streaming_ticks": 3000,
+      "streaming_refresh": 170.56,
+      "streaming_refresh_ticks": 3000,
+      "batch_numpy": 28542.15,
+      "batch_numpy_ticks": 53,
+      "batch_iisignature": 125.14,
+      "batch_iisignature_ticks": 3000,
+      "batch_roughpy": 6546.27,
+      "batch_roughpy_ticks": 230
+    },
+    {
+      "depth": 2,
+      "window": 1200,
+      "streaming": 135.0,
+      "streaming_ticks": 3000,
+      "streaming_refresh": 178.77,
+      "streaming_refresh_ticks": 3000,
+      "batch_numpy": 60000.11,
+      "batch_numpy_ticks": 25,
+      "batch_iisignature": 231.36,
+      "batch_iisignature_ticks": 3000,
+      "batch_roughpy": 13291.18,
+      "batch_roughpy_ticks": 113
+    },
+    {
+      "depth": 3,
+      "window": 10,
+      "streaming": 202.97,
+      "streaming_ticks": 3000,
+      "streaming_refresh": 249.53,
+      "streaming_refresh_ticks": 3000,
+      "batch_numpy": 722.48,
+      "batch_numpy_ticks": 2077,
+      "batch_iisignature": 27.09,
+      "batch_iisignature_ticks": 3000,
+      "batch_roughpy": 528.01,
+      "batch_roughpy_ticks": 2841
+    },
+    {
+      "depth": 3,
+      "window": 30,
+      "streaming": 200.6,
+      "streaming_ticks": 3000,
+      "streaming_refresh": 263.98,
+      "streaming_refresh_ticks": 3000,
+      "batch_numpy": 2232.94,
+      "batch_numpy_ticks": 672,
+      "batch_iisignature": 39.42,
+      "batch_iisignature_ticks": 3000,
+      "batch_roughpy": 873.99,
+      "batch_roughpy_ticks": 1717
+    },
+    {
+      "depth": 3,
+      "window": 100,
+      "streaming": 189.86,
+      "streaming_ticks": 3000,
+      "streaming_refresh": 259.87,
+      "streaming_refresh_ticks": 3000,
+      "batch_numpy": 7402.39,
+      "batch_numpy_ticks": 203,
+      "batch_iisignature": 73.78,
+      "batch_iisignature_ticks": 3000,
+      "batch_roughpy": 2374.47,
+      "batch_roughpy_ticks": 632
+    },
+    {
+      "depth": 3,
+      "window": 300,
+      "streaming": 194.45,
+      "streaming_ticks": 3000,
+      "streaming_refresh": 265.84,
+      "streaming_refresh_ticks": 3000,
+      "batch_numpy": 22483.7,
+      "batch_numpy_ticks": 67,
+      "batch_iisignature": 172.54,
+      "batch_iisignature_ticks": 3000,
+      "batch_roughpy": 6672.99,
+      "batch_roughpy_ticks": 225
+    },
+    {
+      "depth": 3,
+      "window": 600,
+      "streaming": 197.02,
+      "streaming_ticks": 3000,
+      "streaming_refresh": 260.17,
+      "streaming_refresh_ticks": 3000,
+      "batch_numpy": 45987.56,
+      "batch_numpy_ticks": 33,
+      "batch_iisignature": 326.4,
+      "batch_iisignature_ticks": 3000,
+      "batch_roughpy": 13208.0,
+      "batch_roughpy_ticks": 114
+    },
+    {
+      "depth": 3,
+      "window": 1200,
+      "streaming": 201.86,
+      "streaming_ticks": 3000,
+      "streaming_refresh": 264.61,
+      "streaming_refresh_ticks": 3000,
+      "batch_numpy": 91302.82,
+      "batch_numpy_ticks": 17,
+      "batch_iisignature": 628.05,
+      "batch_iisignature_ticks": 2389,
+      "batch_roughpy": 25987.64,
+      "batch_roughpy_ticks": 58
+    }
+  ],
+  "crossover_window": {
+    "iisignature": {
+      "2": 1200,
+      "3": 600
+    },
+    "roughpy": {
+      "2": 10,
+      "3": 10
+    }
+  },
+  "drift": {
+    "by_depth": [
+      {
+        "depth": 2,
+        "window": 250,
+        "ticks": 20000,
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 8.291978215169138e-16,
+        "relative_error_by_level": [
+          4.163336342344337e-17,
+          1.6517620604616922e-15
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 2,
+        "window": 250,
+        "ticks": 20000,
+        "scale": 0.001,
+        "refresh_every": 250,
+        "relative_error": 6.808789643208968e-17,
+        "relative_error_by_level": [
+          5.724587470723463e-17,
+          1.3563108969272263e-16
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 78
+      },
+      {
+        "depth": 3,
+        "window": 250,
+        "ticks": 20000,
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 5.412614800803794e-13,
+        "relative_error_by_level": [
+          4.163336342344337e-17,
+          1.6517620604616922e-15,
+          3.228096483507522e-12
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 3,
+        "window": 250,
+        "ticks": 20000,
+        "scale": 0.001,
+        "refresh_every": 250,
+        "relative_error": 6.938893903907228e-15,
+        "relative_error_by_level": [
+          5.724587470723463e-17,
+          1.3563108969272263e-16,
+          4.1383730110090784e-14
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 78
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 4.2328182625617217e-11,
+        "relative_error_by_level": [
+          4.163336342344337e-17,
+          1.6517620604616922e-15,
+          3.228096483507522e-12,
+          1.0077494372268428e-09
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "scale": 0.001,
+        "refresh_every": 250,
+        "relative_error": 6.938893903907228e-15,
+        "relative_error_by_level": [
+          5.724587470723463e-17,
+          1.3563108969272263e-16,
+          4.1383730110090784e-14,
+          1.4702906512084654e-13
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 78
+      },
+      {
+        "depth": 5,
+        "window": 250,
+        "ticks": 20000,
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 1.6559541602539918e-09,
+        "relative_error_by_level": [
+          4.163336342344337e-17,
+          1.6517620604616922e-15,
+          3.228096483507522e-12,
+          1.0077494372268428e-09,
+          1.9672870291731947e-07
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 5,
+        "window": 250,
+        "ticks": 20000,
+        "scale": 0.001,
+        "refresh_every": 250,
+        "relative_error": 6.938893903907228e-15,
+        "relative_error_by_level": [
+          5.724587470723463e-17,
+          1.3563108969272263e-16,
+          4.1383730110090784e-14,
+          1.4702906512084654e-13,
+          3.563236653146012e-13
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 78
+      }
+    ],
+    "by_ticks": [
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 2500,
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 4.3998138465894954e-13,
+        "relative_error_by_level": [
+          3.469446951953614e-17,
+          2.8681224062410135e-16,
+          3.3123537580116665e-13,
+          1.0475077484474872e-11
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 5000,
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 2.2439550217967508e-12,
+        "relative_error_by_level": [
+          3.469446951953614e-17,
+          9.8310942719948e-16,
+          7.450726769020746e-13,
+          5.3424084619438564e-11
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 10000,
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 1.0031891983786068e-11,
+        "relative_error_by_level": [
+          4.163336342344337e-17,
+          1.6517620604616922e-15,
+          1.5727472791038902e-12,
+          2.388392998205996e-10
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 4.2328182625617217e-11,
+        "relative_error_by_level": [
+          4.163336342344337e-17,
+          1.6517620604616922e-15,
+          3.228096483507522e-12,
+          1.0077494372268428e-09
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 40000,
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 1.7380151484669426e-10,
+        "relative_error_by_level": [
+          4.163336342344337e-17,
+          5.696505767094351e-15,
+          6.538794892314784e-12,
+          4.1378667334970405e-09
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      }
+    ],
+    "by_scale": [
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "scale": 0.0001,
+        "refresh_every": null,
+        "relative_error": 4.2328182625617217e-11,
+        "relative_error_by_level": [
+          1.0083080204115191e-17,
+          9.705829889794514e-16,
+          3.228096483507522e-12,
+          1.0077494372268428e-09
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 4.2328182625617217e-11,
+        "relative_error_by_level": [
+          4.163336342344337e-17,
+          1.6517620604616922e-15,
+          3.228096483507522e-12,
+          1.0077494372268428e-09
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "scale": 0.01,
+        "refresh_every": null,
+        "relative_error": 1.8447619300199225e-10,
+        "relative_error_by_level": [
+          9.992007221626409e-16,
+          1.288236184393554e-13,
+          2.8499319577615123e-11,
+          4.392009487480265e-09
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "scale": 0.1,
+        "refresh_every": null,
+        "relative_error": 1.3364634681228202e-09,
+        "relative_error_by_level": [
+          8.881784197001252e-15,
+          4.365384570068166e-13,
+          5.946051645469742e-11,
+          1.649904354937033e-09
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "scale": 1.0,
+        "refresh_every": null,
+        "relative_error": 6.336274561359525e-12,
+        "relative_error_by_level": [
+          2.842170943040401e-14,
+          3.7952024743756363e-14,
+          1.1047879165529663e-12,
+          6.336274561359525e-12
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      }
+    ]
+  },
+  "nested_windows": {
+    "depth": 3,
+    "segments": 200,
+    "windows": [
+      600,
+      300,
+      150
+    ],
+    "chen_ms": 46.42918011493748,
+    "naive_numpy_ms": 76.73788999003591,
+    "max_abs_difference_vs_numpy": 3.1086244689504383e-15,
+    "naive_iisignature_ms": 0.5826446300488897,
+    "max_abs_difference_vs_iisignature": 4.163336342344337e-15,
+    "speedup_vs_numpy": 1.6527944236807086
+  }
+}

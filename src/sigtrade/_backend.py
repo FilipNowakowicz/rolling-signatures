@@ -7,22 +7,20 @@ Swapping or adding a backend means touching this file alone.
 from __future__ import annotations
 
 import functools
-import itertools
 from typing import Literal
 
 import numpy as np
 
+from sigtrade.algebra import (
+    _words,
+    n_features,
+    tensor_exp,
+    tensor_identity,
+    tensor_log,
+    tensor_multiply,
+)
+
 Backend = Literal["roughpy", "iisignature", "numpy"]
-
-
-def _words(dim: int, depth: int):
-    for level in range(1, depth + 1):
-        yield from itertools.product(range(1, dim + 1), repeat=level)
-
-
-def n_features(dim: int, depth: int) -> int:
-    """Length of a depth-`depth` signature over a `dim`-dimensional path."""
-    return sum(dim**level for level in range(1, depth + 1))
 
 
 def _mobius(n: int) -> int:
@@ -146,29 +144,15 @@ def _signature_levels_numpy(path: np.ndarray, depth: int) -> list[np.ndarray]:
     """Truncated signature as levels 0..depth (level 0 is the scalar 1).
 
     Multiplies the truncated tensor exponentials of every path increment --
-    Chen's identity as an algorithm (docs/notes.html s1.6, s3.3).
+    Chen's identity as an algorithm (docs/notes.html s1.6, s3.3). The algebra
+    itself lives in `sigtrade.algebra`; this is the loop over increments that
+    turns a path into an element of it.
     """
     dim = path.shape[1]
-    levels = [np.ones(1)] + [np.zeros(dim**level) for level in range(1, depth + 1)]
-
+    levels = tensor_identity(dim, depth)
     for increment in np.diff(path, axis=0):
-        exponential = [np.ones(1)]
-        for level in range(1, depth + 1):
-            exponential.append(np.kron(exponential[-1], increment) / level)
-        levels = _tensor_multiply_levels(levels, exponential, dim, depth)
-
+        levels = tensor_multiply(levels, tensor_exp(increment, depth), dim, depth)
     return levels
-
-
-def _tensor_multiply_levels(a: list[np.ndarray], b: list[np.ndarray], dim: int, depth: int) -> list[np.ndarray]:
-    """Concatenation product of two tensor-algebra elements, as level lists."""
-    out = []
-    for level in range(depth + 1):
-        acc = np.zeros(dim**level)
-        for left in range(level + 1):
-            acc = acc + np.kron(a[left], b[level - left])
-        out.append(acc)
-    return out
 
 
 def _signature_numpy(path: np.ndarray, depth: int) -> np.ndarray:
@@ -195,18 +179,7 @@ def _log_signature_full_numpy(path: np.ndarray, depth: int) -> np.ndarray:
     for tests (docs/notes.html s4.4).
     """
     dim = path.shape[1]
-    levels = _signature_levels_numpy(path, depth)
-    x = [np.zeros(1)] + [levels[level].copy() for level in range(1, depth + 1)]
-
-    log_levels = [np.zeros(dim**level) for level in range(depth + 1)]
-    term, sign = x, 1.0
-    for k in range(1, depth + 1):
-        for level in range(depth + 1):
-            log_levels[level] = log_levels[level] + sign * term[level] / k
-        if k < depth:
-            term = _tensor_multiply_levels(term, x, dim, depth)
-        sign = -sign
-
+    log_levels = tensor_log(_signature_levels_numpy(path, depth), dim, depth)
     return np.concatenate(log_levels[1:])
 
 
