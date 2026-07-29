@@ -19,7 +19,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      - name: Install sigtrade with test extras
+      - name: Install rollsig with test extras
         run: pip install -e ".[test]"
 
       - name: Install iisignature

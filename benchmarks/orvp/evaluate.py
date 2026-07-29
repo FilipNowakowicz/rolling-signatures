@@ -34,7 +34,7 @@ def make_model() -> HistGradientBoostingRegressor:
     """The one learner every arm shares.
 
     scikit-learn's histogram gradient booster, not LightGBM: it is the same
-    algorithm family, it is already a hard dependency of `sigtrade`, and
+    algorithm family, it is already a hard dependency of `rollsig`, and
     keeping the learner fixed and unremarkable is the point -- this
     benchmark is a claim about features, not about tuning.
     """

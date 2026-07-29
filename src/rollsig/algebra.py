@@ -3,7 +3,7 @@
 `_backend.py` computes signatures; this module is the *ring they live in*.
 A signature is a grouplike element of the tensor algebra
 T((V)) = sum_n V^{tensor n} truncated at `depth`, and the two facts that make
-`sigtrade.streaming` possible are both stated here:
+`rollsig.streaming` possible are both stated here:
 
 * **Chen's identity** (docs/notes.html s1.6) -- concatenating paths multiplies
   their signatures, so `tensor_multiply` extends a window at its right end.

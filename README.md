@@ -1,83 +1,144 @@
-# sigtrade
+# rolling-signatures
 
-[![CI](https://github.com/FilipNowakowicz/sigtrade/actions/workflows/ci.yml/badge.svg)](https://github.com/FilipNowakowicz/sigtrade/actions/workflows/ci.yml)
+`rollsig` is a `scikit-learn`-compatible library that turns financial time
+series into **causal, rolling-window path-signature features**, with
+sliding-window updates that cost **O(1) per tick in the steady state** —
+derived from the group structure of the tensor algebra (Chen's identity plus
+the group inverse).
 
-> **Status: early development.** The v0.1 core computes causal rolling
-> signatures; v0.2 adds a benchmarked realized-volatility study on real
-> order-book data; v0.3 adds the streaming engine, whose steady-state cost
-> per tick does not depend on the window length. Not yet on PyPI — see
-> [Progress](#progress).
+Two results came out of it, and the headline one is negative:
 
-A `scikit-learn`-compatible library that turns financial time series into
-**causal, rolling-window path-signature features**, with sliding-window
-updates that cost **O(1) per tick in the steady state** — derived from the
-group structure of the tensor algebra (Chen's identity + the group inverse).
-The headline benchmark is
-the Optiver Realized Volatility Prediction dataset, evaluated against
-reproduced top-solution baselines — where, as it turns out, **signature
-features did not beat the baselines.** See
-[Benchmark](#benchmark-optiver-realized-volatility).
+- **The streaming engine works, and the asymptotics hold.** Steady-state
+  per-tick cost is flat across a 120× change in window length, which makes it
+  129× faster than RoughPy — the default backend — at window 1200. The
+  numerical drift that repeated group operations buy you is measured, bounded
+  and priced rather than waved away.
+  [→ Streaming engine](#streaming-engine-constant-cost-per-tick)
+- **On the Optiver Realized Volatility Prediction dataset, signature features
+  did not beat reproduced order-book baselines.** Not with the order-book
+  state handed to them as extra path channels, and not on any of three
+  pre-registered stock subsets.
+  [→ Benchmark](#benchmark-optiver-realized-volatility)
+
+## Install
+
+```bash
+pip install git+https://github.com/FilipNowakowicz/rolling-signatures
+```
+
+Or, for a checkout you intend to work on:
+
+```bash
+git clone https://github.com/FilipNowakowicz/rolling-signatures
+cd rolling-signatures
+pip install -e ".[test]"
+```
+
+Python 3.10+. `RoughPy` is the default backend and installs as a dependency;
+`iisignature` is an optional extra (`pip install "rollsig[iisignature]"`) and
+is roughly two orders of magnitude faster for log-signatures at the sizes this
+library is aimed at. `rollsig` is installed from this repository rather than
+from PyPI, deliberately: claiming a name in a global namespace is a public and
+not-easily-reversed act, and nothing here needs it.
+
+## Use
+
+`SignatureTransformer` follows the scikit-learn estimator interface. Each row
+uses only the current and preceding observations; no future value enters the
+feature at time `t`, and that is enforced by test rather than assumed.
+
+```python
+from rollsig import SignatureTransformer
+
+features = SignatureTransformer(
+    window=20,
+    depth=3,
+    time_augmentation=True,
+    lead_lag_transform=True,
+).fit_transform(prices)
+```
+
+`method="auto"` (the default) picks the route measured to be faster for the
+given backend, window and depth: streaming against the RoughPy backend and
+against numpy, and — with `backend="iisignature"` — compiled batch below the
+measured crossover window, streaming above it. An explicit `method="batch"` or
+`method="streaming"` overrides that and is honoured as given. The two routes
+agree to floating-point noise, so this is purely a speed decision; the
+resolved choice is readable on the fitted estimator as `transformer.method_`.
+
+The engine is also usable directly, on a stream that arrives a tick at a time:
+
+```python
+from rollsig import StreamingSignature
+
+engine = StreamingSignature(window=600, depth=3, dim=1, time_augmentation=True)
+for price in feed:
+    features = engine.update([price])   # constant cost once the window is full
+```
+
+For tests and small examples, `backend="numpy"` selects the bundled reference
+implementation. The streamed *values* are backend-independent — a sliding
+update is arithmetic in the tensor algebra rather than a call into a signature
+engine — so `backend` enters the streaming path only through `method="auto"`,
+which needs to know what it would otherwise be competing against.
 
 ## The gap this fills
 
 The path signature — an infinite hierarchy of iterated integrals that
-characterizes a path up to reparametrization — is well studied (Lyons'
-rough path theory, 15+ years of literature), and fast low-level compute
-libraries already implement it: `iisignature`, `RoughPy`, `signax`, `esig`.
-None of them carry any finance-specific framing.
+characterizes a path up to reparametrization — is well studied (Lyons' rough
+path theory, 15+ years of literature), and fast low-level compute libraries
+already implement it: `iisignature`, `RoughPy`, `signax`, `esig`. None of them
+carry any finance-specific framing.
 
-This is **not** "nobody has packaged signatures for finance." `sktime`
-already ships a `SignatureTransformer` (the Generalised Signature Method —
-Morrill, Fermanian, Kidger, Lyons, 2020), and it's a good tool for what it
-does. What it does is panel classification: pre-segmented series in, one
-feature vector out. Quant pipelines need something different — rolling
-features computed on a continuous stream, with a hard no-lookahead
-guarantee, recomputed efficiently at every new tick rather than from
-scratch over the whole window.
+This is **not** "nobody has packaged signatures for finance." `sktime` already
+ships a `SignatureTransformer` (the Generalised Signature Method — Morrill,
+Fermanian, Kidger, Lyons, 2020), and it is a good tool for what it does. What
+it does is panel classification: pre-segmented series in, one feature vector
+out. Quant pipelines need something different — rolling features computed on a
+continuous stream, with a hard no-lookahead guarantee, recomputed efficiently
+at every new tick rather than from scratch over the whole window.
 
-`sigtrade` aims to be that missing layer:
+`rollsig` is that layer:
 
-1. **Causal, rolling features on a stream** — not panel classification.
-   Feature at time *t* is a function of data at times ≤ *t* only, enforced
-   and tested, not assumed.
+1. **Causal, rolling features on a stream** — not panel classification. The
+   feature at time *t* is a function of data at times ≤ *t* only, enforced and
+   tested.
 2. **Streaming updates via the algebra, at constant steady-state cost.**
    Signatures are grouplike under concatenation (Chen's identity): sliding a
    window is a left-multiply by the inverse of the departing segment's
    signature and a right-multiply by the new increment, rather than an
-   O(window) recomputation. No existing high-level library exposes this as a
-   rolling-feature API. Implemented and measured in v0.3 — see
-   [Streaming engine](#streaming-engine-constant-cost-per-tick).
-3. **Finance-specific defaults, evaluated honestly** — lead-lag
-   transformation (recovers quadratic variation), time augmentation, and
-   benchmarks that report negative results when signatures don't help,
-   not just the wins.
+   O(window) recomputation. No other high-level library exposes this as a
+   rolling-feature API.
+3. **Finance-specific defaults, evaluated honestly** — lead-lag transformation
+   (which recovers quadratic variation), time augmentation, and benchmarks
+   that report negative results when signatures don't help.
 
 ## Why signatures — the math in one paragraph
 
 The signature of a path lives in the tensor algebra
-$T((V)) = \bigoplus_n V^{\otimes n}$, a noncommutative associative ring
-under the tensor product; the log-signature lives in the free Lie algebra
-generated by $V$. Signatures satisfy **Chen's identity** (path
-concatenation corresponds to a tensor product of signatures) and the
-**shuffle-product identity** (a Hopf-algebra structure — a commutative ring
-dual to the tensor algebra). These aren't decoration: Chen's identity is
-what makes the constant-cost streaming update possible, and the shuffle
-relations are used directly as a correctness oracle in tests. The full
-expository writeup
-is [`docs/notes.html`](docs/notes.html) — the algebra worked from a live
-example, and the v0.1 build — continued in
-[`docs/notes-orvp.html`](docs/notes-orvp.html) for the benchmark and
-[`docs/notes-streaming.html`](docs/notes-streaming.html) for the streaming
-engine. There is no separate `docs/math.md`; these are it.
+$T((V)) = \bigoplus_n V^{\otimes n}$, a noncommutative associative ring under
+the tensor product; the log-signature lives in the free Lie algebra generated
+by $V$. Signatures satisfy **Chen's identity** (path concatenation corresponds
+to a tensor product of signatures) and the **shuffle-product identity** (a
+Hopf-algebra structure — a commutative ring dual to the tensor algebra). These
+aren't decoration: Chen's identity is what makes the constant-cost streaming
+update possible, and the shuffle relations are used directly as a correctness
+oracle in the tests.
+
+The full expository write-up is the three-part working notes, written chapter
+by chapter as the code was built: [`docs/notes.html`](docs/notes.html) (the
+algebra, worked from a live example, and the core transformer),
+[`docs/notes-orvp.html`](docs/notes-orvp.html) (the benchmark), and
+[`docs/notes-streaming.html`](docs/notes-streaming.html) (the streaming
+engine).
 
 ## Benchmark: Optiver realized volatility
 
 **Headline: on this task, signature features did not improve on reproduced
 order-book baselines — including after being given the order-book state as
-extra path channels, and replicated across three independent stock
-subsets.** The full study is in
-[`benchmarks/orvp/`](benchmarks/orvp/README.md); the reasoning behind the
-design is [`docs/notes-orvp.html`](docs/notes-orvp.html).
+extra path channels, and replicated across three independent stock subsets.**
+The full study is in [`benchmarks/orvp/`](benchmarks/orvp/README.md); the
+reasoning behind the design is [`docs/notes-orvp.html`](docs/notes-orvp.html).
 
 Why this task is a sharp test rather than a fishing expedition: the lead-lag
 transform makes quadratic variation appear *exactly* at level 2 of the
@@ -90,7 +151,7 @@ Three independent 20-stock subsets (pre-registered seeds 0/1/2), ~76,600
 ten-minute segments each, depth-3 log-signatures over 600/300/150-second
 causal suffix windows. Every arm goes into the same
 `HistGradientBoostingRegressor` on the same `GroupKFold` splits; only the
-input columns change.
+input columns change. Lower RMSPE is better.
 
 | Arm | Features | seed 0 | seed 1 | seed 2 | Mean |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -109,51 +170,50 @@ input columns change.
 
 Read honestly, four things happened:
 
-1. **Signatures alone nearly match hand-designed volatility features — on
-   one subset.** On seed 0, 91 log-signature coordinates land within 1.2% of
-   a 27-feature HAR-RV set, with no volatility-specific engineering at all,
-   just the geometry of the price path. On seeds 1 and 2 the same comparison
-   is 4–5% adrift. The generic construction is competitive on some stock
+1. **Signatures alone nearly match hand-designed volatility features — on one
+   subset.** On seed 0, 91 log-signature coordinates land within 1.2% of a
+   27-feature HAR-RV set, with no volatility-specific engineering at all, just
+   the geometry of the price path. On seeds 1 and 2 the same comparison is
+   4–5% adrift. The generic construction is competitive on some stock
    universes and clearly not on others.
 2. **They add nothing to a strong baseline.** `sig+book+har` is worse than
    `book+har` on all three subsets (−0.17%, −1.78%, −1.02%; mean −0.99%).
 3. **Giving signatures the order-book state does not rescue them.** The
    obvious objection to the above was that `sig` saw only the WAP path while
    `book` saw order-book *state*, making it an input-set comparison rather
-   than a feature-family one. v0.2.1 closed that: `multisig` carries
-   relative spread and depth imbalance as extra channels of one path (depth
-   2, same windows, same functions the `book` arm uses). It does beat the
-   price-only arm on every subset (+0.70%, +0.08%, +1.78%) — the confound
+   than a feature-family one. The multichannel arm closed that: `multisig`
+   carries relative spread and depth imbalance as extra channels of one path
+   (depth 2, same windows, same functions the `book` arm uses). It does beat
+   the price-only arm on every subset (+0.70%, +0.08%, +1.78%) — the confound
    was real — but `multisig+book+har` is still worse than `book+har` on all
    three (−0.08%, −1.32%, −0.15%; mean −0.52%), and the grouped bootstrap
    clears p < 0.05 on **0 of 3**.
-4. **Replication mattered more than the point estimates.** Seed 0 was the
-   most favourable of the three subsets, and it is the one v0.2 originally
-   reported. `multisig+har` beats `har` by 0.72% on seed 0 and loses by
-   1.75% and 2.14% on the other two. Any of these single-subset numbers,
-   read alone, would have supported a conclusion the other subsets
-   contradict.
+4. **Replication mattered more than the point estimates.** Seed 0 was the most
+   favourable of the three subsets, and it is the one the first pass reported.
+   `multisig+har` beats `har` by 0.72% on seed 0 and loses by 1.75% and 2.14%
+   on the other two. Any of these single-subset numbers, read alone, would
+   have supported a conclusion the other subsets contradict.
 
 **The conclusion, stated plainly:** on ORVP, path signatures of order-book
 data — price alone or price plus book state — do not improve on
-straightforward aggregates of the same data. This is a bounded claim about
-one task, not about signatures in general, but within that task it is now
-tested against the obvious confound and replicated across stock universes,
-so the ORVP line of enquiry is closed rather than merely paused.
+straightforward aggregates of the same data. This is a bounded claim about one
+task, not about signatures in general, but within that task it is tested
+against the obvious confound and replicated across stock universes, so the
+ORVP line of enquiry is closed rather than merely paused.
 
-Two smaller findings worth recording. `book` alone beats `book+har` on two
-of three subsets, so the best baseline is not the same arm on every subset —
+Two smaller findings worth recording. `book` alone beats `book+har` on two of
+three subsets, so the best baseline is not the same arm on every subset —
 which is why `book+har` was fixed in advance as the comparator rather than
 chosen after the fact. And the multichannel arm reaches its results at depth
-**2** with 109 features against the price-only arm's depth 3 and 91: the
-gain came from channels, not from higher-order terms.
+**2** with 109 features against the price-only arm's depth 3 and 91: the gain
+came from channels, not from higher-order terms.
 
 ### Truncation depth vs. window count
 
 Sweeping depth against window sets (signature columns only, same folds and
-learner) puts the turnover at **depth 3**: going 2 → 3 buys a real gain,
-while 3 → 4 triples the feature count (91 → 271) and moves RMSPE by 0.00008
-— a thirtieth of the fold standard deviation.
+learner) puts the turnover at **depth 3**: going 2 → 3 buys a real gain, while
+3 → 4 triples the feature count (91 → 271) and moves RMSPE by 0.00008 — a
+thirtieth of the fold standard deviation.
 
 The sharpest line falls out of a coincidence in feature counts. Depth 4 over
 one 600 s window and depth 3 over three nested windows both yield exactly
@@ -166,24 +226,24 @@ one 600 s window and depth 3 over three nested windows both yield exactly
 
 **At a fixed feature budget, buy horizons rather than depth.** Volatility
 forecasting wants to know how the recent past differs from the less-recent
-past — a statement about *windows* — more than it wants a finer description
-of any one window's geometry. Full table: `benchmarks/orvp/results/`.
+past — a statement about *windows* — more than it wants a finer description of
+any one window's geometry. Full table: `benchmarks/orvp/results/`.
 
-The depth/window study was run on seed 0 only, before the replication
-existed. Given how much the seed-0 numbers move on other subsets, treat its
-turnover point as indicative rather than settled.
+The depth/window study was run on seed 0 only, before the replication existed.
+Given how much the seed-0 numbers move on other subsets, treat its turnover
+point as indicative rather than settled.
 
 ### What this does not claim
 
-The competition's private leaderboard was rescored on market data from
-*after* it closed, so no result obtainable from the training data can be
-translated into a leaderboard position, and none is. Cross-validation here
-is `GroupKFold` on `time_id`, not walk-forward — the organisers shuffled
-`time_id` and shipped no timestamps, so no chronological order is
-recoverable from the data. Grouping still closes the leak that dominates
-here (a `time_id` is one instant of market time across all 112 stocks, and
-volatility is strongly correlated cross-sectionally), but it does not
-simulate deployment across time.
+The competition's private leaderboard was rescored on market data from *after*
+it closed, so no result obtainable from the training data can be translated
+into a leaderboard position, and none is. Cross-validation here is
+`GroupKFold` on `time_id`, not walk-forward — the organisers shuffled
+`time_id` and shipped no timestamps, so no chronological order is recoverable
+from the data. Grouping still closes the leak that dominates here (a `time_id`
+is one instant of market time across all 112 stocks, and volatility is
+strongly correlated cross-sectionally), but it does not simulate deployment
+across time.
 
 ## Streaming engine (constant cost per tick)
 
@@ -194,9 +254,9 @@ predecessor, and Chen's identity says the shared part need not be re-read:
 
 Neither factor depends on *w*, so once there is a departing increment to
 cancel — that is, once the window is full — the per-tick cost is a function of
-`depth` and the channel count alone. `sigtrade.algebra` is the truncated tensor
+`depth` and the channel count alone. `rollsig.algebra` is the truncated tensor
 algebra as a callable object (multiply, group inverse, exp, log, dilate, with
-the group laws as property-based tests); `sigtrade.streaming` turns it into a
+the group laws as property-based tests); `rollsig.streaming` turns it into a
 rolling-feature API, which `SignatureTransformer` selects wherever it was
 measured to be the faster route.
 
@@ -225,9 +285,9 @@ Two results, in order of how much weight they carry:
    result that matters: it is a statement about the algebra, so a measured
    slope would have meant a bug.
 2. **129× faster than RoughPy at window 1200**, and faster than RoughPy — the
-   library's default backend — at every window measured, from 1.7× at
-   window 10. Because streaming is flat and recomputation is not, that ratio
-   keeps growing with the window.
+   library's default backend — at every window measured, from 1.7× at window
+   10. Because streaming is flat and recomputation is not, that ratio keeps
+   growing with the window.
 
 **The qualification belongs in the same breath.** The update is interpreted
 Python doing dozens of small numpy calls, so against `iisignature`'s compiled
@@ -255,112 +315,45 @@ shared part cannot be re-decomposed, and not here. Full study:
 [`benchmarks/streaming/`](benchmarks/streaming/README.md); reasoning:
 [`docs/notes-streaming.html`](docs/notes-streaming.html).
 
-## Roadmap
+## What is in the repository
 
-See [`ROADMAP.md`](ROADMAP.md) for the versioned build plan (v0.1 core
-transformer → v0.2 Optiver realized-vol benchmark → v0.3 streaming engine →
-v0.4 daily-bar secondary study → v0.5 stretch goals) and background/
-rationale in [`CLAUDE.md`](CLAUDE.md).
+| Path | What it holds |
+| --- | --- |
+| `src/rollsig/` | The library: `transformer.py` (the sklearn estimator), `preprocessing.py` (basepoint, time augmentation, lead-lag, rescaling), `algebra.py` (the truncated tensor algebra), `streaming.py` (the rolling engine), `_backend.py` (the narrow RoughPy / `iisignature` / numpy interface). |
+| `tests/` | 150 tests, run in CI on Python 3.11 and 3.12. The correctness oracles are mathematical: Chen's identity, the shuffle identity, primitivity in the free Lie algebra, invariance under time reparametrization, the group laws, and agreement between the backends. |
+| `benchmarks/orvp/` | The realized-volatility study — data pipeline, arms, grouped CV, bootstrap, three-subset replication. Committed results in `results/`. |
+| `benchmarks/streaming/` | The streaming study — per-tick timings, the drift measurement, the nested-window retraction. Committed results in `results/`. |
+| `docs/` | The three-part working notes: the mathematics and the build, chapter by chapter. |
+| `notebooks/` | A worked example applying `rollsig` to the ORVP data end to end. |
 
-## Progress
+Both benchmark directories are research code, deliberately outside the
+installable package: they consume `rollsig`'s public API exactly as an outside
+user would. Each has a README with the commands to reproduce its numbers from
+scratch.
 
-- [x] v0.1 — core `SignatureTransformer`, causal rolling-window features,
-      preprocessing (basepoint, time augmentation, lead-lag, rescaling),
-      log-signatures, and a property-based correctness suite (Chen's
-      identity, shuffle identity, free-Lie-algebra/primitivity, time-
-      reparametrization invariance, backend agreement) all run in CI. Math
-      write-up lives in [`docs/notes.html`](docs/notes.html). PyPI publish
-      is intentionally deferred.
-- [x] v0.2 — Optiver realized-volatility benchmark vs. reproduced
-      baselines, on 20 stocks and 76,599 real order-book segments, with a
-      shared learner and grouped CV across every arm. Result reported above
-      and it is a negative one. Added an `iisignature` log-signature backend
-      along the way (~100× faster than RoughPy at these sizes), with both
-      backends pinned against a basis-independent oracle since they return
-      coordinates in *different* bases of the free Lie algebra.
-      Write-up: [`docs/notes-orvp.html`](docs/notes-orvp.html).
-- [x] v0.2.1 — multichannel (price, spread, imbalance) log-signature arms,
-      and the whole benchmark replicated on three pre-registered stock
-      subsets. Closes the input-set confound in v0.2's negative result: the
-      extra channels help signatures, but not enough to beat the order-book
-      aggregates on any subset. **ORVP is closed** — no further feature
-      search on this dataset.
-- [x] v0.3 — streaming signature updates at O(1) steady-state cost per tick.
-      `sigtrade.algebra` (the truncated tensor algebra, with the group laws
-      under property-based test) and `sigtrade.streaming`
-      (`StreamingSignature`, `rolling_signature`, `suffix_signature`,
-      `nested_suffix_signatures`), wired into `SignatureTransformer` as
-      `method="auto"|"batch"|"streaming"`, where `"auto"` follows the measured
-      crossover. Per-tick cost measured flat across a 120× range of window
-      lengths; drift measured, bounded and priced. Reported above with the
-      crossover against a compiled backend and one retracted v0.2 prediction.
-      Write-up: [`docs/notes-streaming.html`](docs/notes-streaming.html).
-- [ ] v0.4 — daily multi-asset-trend secondary study
-- [ ] v0.5 — stretch goals
+## Scope and limitations
 
-## Install and use
+Deliberately not done:
 
-The project is not yet published to PyPI. Install the development checkout:
+- **Low-level signature computation for production use.** This wraps
+  `iisignature` and `RoughPy`; the pure-numpy implementation exists as a test
+  oracle. A compiled version of the streaming update would move the
+  `iisignature` crossover to a very small window — and would also make
+  `rollsig.algebra` unreadable, which is most of its value.
+- **Panel/segment classification.** That is `sktime`'s job and it does it
+  well.
+- **A general-purpose ML library.** This stays scoped to financial time
+  series.
 
-```bash
-pip install -e .
-```
-
-`SignatureTransformer` follows the scikit-learn estimator interface. Each
-row uses only the current and preceding observations; no future value enters
-the feature at time `t`.
-
-```python
-from sigtrade import SignatureTransformer
-
-features = SignatureTransformer(
-    window=20,
-    depth=3,
-    time_augmentation=True,
-    lead_lag_transform=True,
-).fit_transform(prices)
-```
-
-`method="auto"` (the default) picks the route that was measured to be faster
-for the given backend, window and depth: streaming against the default
-RoughPy backend and against numpy, and — with `backend="iisignature"` —
-compiled batch below the crossover window, streaming above it. An explicit
-`method="batch"` or `method="streaming"` overrides that and is honoured as
-given. The two routes agree to floating-point noise, so this is purely a
-speed decision; the resolved choice is readable on the fitted estimator as
-`transformer.method_`.
-
-`method="batch"` is also the automatic fallback for `basepoint=True` and
-`output="log_signature"`, which the **current** streaming implementation does
-not support — the first changes how the window's left boundary is
-represented, the second returns coordinates in a backend-specific basis of the
-free Lie algebra while the streaming engine maintains the full tensor
-signature. Both are implementable; neither is implemented in v0.3.
-
-The engine is also usable directly, on a stream that arrives a tick at a time:
-
-```python
-from sigtrade import StreamingSignature
-
-engine = StreamingSignature(window=600, depth=3, dim=1, time_augmentation=True)
-for price in feed:
-    features = engine.update([price])   # constant cost once the window is full
-```
-
-For tests and small examples, pass `backend="numpy"` to use the bundled
-reference implementation. Batch computation defaults to RoughPy. The streamed
-*values* are backend-independent — a sliding update is arithmetic in the
-tensor algebra rather than a call into a signature engine — so `backend`
-enters the streaming path only through `method="auto"`, which needs to know
-what it would otherwise be competing against.
-
-## Non-goals
-
-- Reimplementing low-level signature computation for production use (this
-  wraps `iisignature`/`RoughPy`; a pure-numpy version exists only as a test
-  oracle)
-- Competing with `sktime` on panel/segment classification
-- A general-purpose ML library — this stays scoped to financial time series
+Two configurations fall back to an exact batch computation instead of
+streaming, so they cost speed and never correctness, and
+`SignatureTransformer` selects the fallback itself: `basepoint=True`, which
+changes how the window's left boundary is represented, and
+`output="log_signature"`, which returns coordinates in a backend-specific
+basis of the free Lie algebra while the streaming engine maintains the full
+tensor signature. Factorial `rescale` is not defined for log-signature output
+— it would need indexing by bracket depth rather than word length — and raises
+rather than silently doing the wrong thing.
 
 ## License
 

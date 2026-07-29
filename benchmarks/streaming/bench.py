@@ -45,9 +45,9 @@ from pathlib import Path
 
 import numpy as np
 
-from sigtrade import signature
-from sigtrade.preprocessing import preprocess_path
-from sigtrade.streaming import StreamingSignature, nested_suffix_signatures
+from rollsig import signature
+from rollsig.preprocessing import preprocess_path
+from rollsig.streaming import StreamingSignature, nested_suffix_signatures
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
 

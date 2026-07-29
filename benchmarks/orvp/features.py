@@ -20,8 +20,8 @@ import numpy as np
 import pandas as pd
 
 from benchmarks.orvp import data
-from sigtrade import log_signature, preprocess_path
-from sigtrade._backend import _log_labels_iisignature
+from rollsig import log_signature, preprocess_path
+from rollsig._backend import _log_labels_iisignature
 
 SUFFIX_WINDOWS = (600, 300, 150, 60, 30)
 """Nested suffix windows, in seconds, for the HAR-style arm.
@@ -211,7 +211,7 @@ def signature_feature_names(spec: SignatureSpec, n_channels: int = 1) -> list[st
     """Column names for `signature_features`, one per Lie-basis coordinate.
 
     Names carry the backend's own bracket labels, because the two backends
-    use different bases of the free Lie algebra (see `sigtrade.log_signature`).
+    use different bases of the free Lie algebra (see `rollsig.log_signature`).
     """
     dim = n_channels + int(spec.time_augmentation)
     if spec.lead_lag_transform:
@@ -234,9 +234,11 @@ def signature_features(grid: pd.DataFrame, spec: SignatureSpec = SignatureSpec()
 
     Each window is computed from scratch here. Nested suffixes share almost
     all of their path, and Chen's identity would let the shorter windows be
-    peeled off the longer ones instead -- that is exactly the redundancy the
-    v0.3 streaming engine removes, and this benchmark is the thing that
-    quantifies what it is worth.
+    peeled off the longer ones instead -- but `benchmarks/streaming/` measured
+    that route and it saves nothing here: calling the compiled backend three
+    times beats every decomposition tried, by 80x. Group inverses earn their
+    keep on sliding windows, not on nested ones. From-scratch is the right
+    call, and it is a measured one (`docs/notes-streaming.html` 11.4).
     """
     log_prices = np.log(grid.to_numpy())
     blocks = []

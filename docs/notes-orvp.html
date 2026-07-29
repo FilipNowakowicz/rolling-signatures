@@ -1,4 +1,4 @@
-<title>sigtrade — Working Notes, Part II: The Benchmark</title>
+<title>rollsig — Working Notes, Part II: The Benchmark</title>
 <style>
   :root {
     --bg: #f5f6f7;
@@ -318,7 +318,7 @@
 <div class="page">
 
 <header class="masthead">
-  <span class="eyebrow">sigtrade &middot; working notes &middot; part II</span>
+  <span class="eyebrow">rollsig &middot; working notes &middot; part II</span>
   <h1>The Benchmark</h1>
   <span class="subtitle">Part II of the working notes &mdash; v0.2, the Optiver realized-volatility study. Part I (the algebra, and building v0.1) is in <code>docs/notes.html</code>. Last updated 28 July 2026.</span>
 </header>
@@ -364,12 +364,12 @@
 
 <section id="ch6-1">
   <h3><span class="sec-no">6.1</span> Why realized volatility is the sharpest possible test</h3>
-  <p>Most "do these features help?" questions are vague, because the feature family and the target have no particular relationship and you are really just asking whether a large pile of numbers happens to correlate with something. Realized volatility is different, and it is the reason ROADMAP.md put this benchmark first rather than the daily-bar study.</p>
+  <p>Most "do these features help?" questions are vague, because the feature family and the target have no particular relationship and you are really just asking whether a large pile of numbers happens to correlate with something. Realized volatility is different, and it is the reason this benchmark was chosen as the headline study rather than a daily-bar one.</p>
   <p>&sect;1.5 established that the lead-lag transform makes quadratic variation visible at level 2. Stated precisely: for the lead-lag embedding of a scalar path, the antisymmetric part of the second level &mdash; the L&eacute;vy area, doubled &mdash; equals the path's discrete quadratic variation exactly.</p>
   <div class="eqn">
     <math display="block"><mrow><msup><mi>S</mi><mrow><mo>(</mo><mn>1</mn><mo>,</mo><mn>2</mn><mo>)</mo></mrow></msup><mo>&minus;</mo><msup><mi>S</mi><mrow><mo>(</mo><mn>2</mn><mo>,</mo><mn>1</mn><mo>)</mo></mrow></msup><mo>=</mo><munder><mo>&sum;</mo><mi>i</mi></munder><msup><mrow><mo>(</mo><mi>&Delta;</mi><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo></mrow><mn>2</mn></msup></mrow></math>
   </div>
-  <p>Not approximately. On a 200-point random walk, computed through <code>sigtrade</code>'s numpy backend:</p>
+  <p>Not approximately. On a 200-point random walk, computed through <code>rollsig</code>'s numpy backend:</p>
 <pre><code>QV               184.8037480539841
 S12 - S21        184.8037480539842
 ratio            1.0000000000000007</code></pre>
@@ -434,7 +434,7 @@ roughpy      ...  3.27487  1.22858  1.14639  1.32135  0.65885  0.39506</code></p
         <tr><td>naive</td><td>predict the observed window's realized volatility. No model at all. Volatility is strongly persistent, so this is a genuinely hard floor.</td></tr>
         <tr><td>har</td><td>HAR-RV-style: realized volatility over nested suffix windows (600/300/150/60/30 s), plus activity and quarticity terms.</td></tr>
         <tr><td>book</td><td>reproduced top-solution-style aggregates: WAP realized volatility at both book levels, relative spread, depth imbalance, trade intensity, over nested windows.</td></tr>
-        <tr><td>sig</td><td><code>sigtrade</code> log-signatures of the lead-lag, time-augmented log-WAP path over the same nested windows.</td></tr>
+        <tr><td>sig</td><td><code>rollsig</code> log-signatures of the lead-lag, time-augmented log-WAP path over the same nested windows.</td></tr>
         <tr><td>sig+har, sig+book, sig+book+har</td><td>the marginal-value arms &mdash; what signatures add <i>on top of</i> a baseline.</td></tr>
       </tbody>
     </table>
@@ -456,7 +456,7 @@ roughpy      ...  3.27487  1.22858  1.14639  1.32135  0.65885  0.39506</code></p
 
 <section id="ch7-3">
   <h3><span class="sec-no">7.3</span> The leak that matters &mdash; and the split that isn't possible</h3>
-  <p>ROADMAP.md asks for strict walk-forward cross-validation. On this dataset that is not achievable, and saying so is more useful than pretending otherwise.</p>
+  <p>The plan for this benchmark asked for strict walk-forward cross-validation. On this dataset that is not achievable, and saying so is more useful than pretending otherwise.</p>
   <p>The organisers deliberately shuffled and anonymised <code>time_id</code>, so its numeric order is not chronological. There is no timestamp anywhere in the shipped data. A genuine walk-forward split &mdash; train on the past, test on the future &mdash; cannot be reconstructed from what the competition provides. (Some competitors did reconstruct an ordering from cross-stock volatility correlations; that is a competition-specific exploit, not a foundation for an honest benchmark, and it is out of scope here.)</p>
   <p>What <i>is</i> both reconstructable and essential is grouping. A <code>time_id</code> is one instant of market time observed simultaneously across all 112 stocks. Realized volatility is strongly correlated across stocks at the same instant &mdash; when the market is turbulent, it is turbulent for everyone. So if one stock's row from a given <code>time_id</code> trains a model that is then scored on a <i>different</i> stock's row from the <i>same</i> <code>time_id</code>, the model has effectively been shown the answer.</p>
   <p><code>GroupKFold</code> on <code>time_id</code> closes that, and a test asserts it directly rather than trusting the class name:</p>
@@ -573,16 +573,16 @@ pd.testing.assert_frame_equal(original.features.iloc[early], corrupted.features.
 
 <section id="ch9-1">
   <h3><span class="sec-no">9.1</span> The redundancy this benchmark pays for three times over</h3>
-  <p>Building the signature arm made the case for v0.3 concrete in a way the roadmap's abstract argument did not.</p>
+  <p>Building the signature arm made the case for a streaming engine concrete in a way the abstract argument for one did not.</p>
   <p>Each segment's features come from three <i>nested suffix windows</i>: the last 600 seconds, the last 300, the last 150. The 150-second path is a suffix of the 300-second path, which is a suffix of the 600-second path. Every one is currently computed from scratch, so the final 150 seconds of price data get traversed three separate times, and the total work is 1050 points of path per segment where 600 would do.</p>
   <p>Chen's identity (&sect;1.6) says that is unnecessary. The signature of a concatenation is the tensor product of the signatures, so the signature over a suffix can be obtained from the full window's signature by left-multiplying by the <i>inverse</i> of the departing prefix's signature &mdash; the group structure of the tensor algebra, doing exactly the work it exists to do. That is the v0.3 streaming engine, and this benchmark is what quantifies its value: not a speedup measured on synthetic paths, but a measured fraction of a real feature pipeline.</p>
   <div class="note"><b>Retracted in v0.3 &mdash; see <code>docs/notes-streaming.html</code> &sect;11.4.</b> The identity above is correct and the algorithm it suggests saves nothing: recovering the suffixes by inverting departing prefixes needs the full window's signature <i>and</i> every prefix's, which is the same 1,050 points. The saving comes from cutting the longest window into <i>disjoint</i> chunks and combining them forwards, with no inverse involved &mdash; group inverses are what a <i>sliding</i> window needs, where the shared part cannot be re-decomposed. Measured, even the chunked route loses by 80&times; to calling <code>iisignature</code> three times, so this is a redundancy the ORVP pipeline should go on paying.</div>
-  <p>The other thing v0.2 hands forward is a caution. The nested-window redundancy is <i>arithmetically</i> removable; whether it is removable at acceptable numerical cost is a separate question. Repeated multiplication by group inverses at depth 4 compounds floating-point error in a way that recomputation does not, and the higher levels are precisely where the coefficients are smallest. ROADMAP.md already flags this as something to investigate and document rather than assume away. The oracles from Part I are what will settle it: whatever the streaming engine produces has to match a from-scratch recomputation to a stated tolerance, or the speedup is not real.</p>
+  <p>The other thing v0.2 hands forward is a caution. The nested-window redundancy is <i>arithmetically</i> removable; whether it is removable at acceptable numerical cost is a separate question. Repeated multiplication by group inverses at depth 4 compounds floating-point error in a way that recomputation does not, and the higher levels are precisely where the coefficients are smallest. That was flagged from the start as something to investigate and document rather than assume away. The oracles from Part I are what will settle it: whatever the streaming engine produces has to match a from-scratch recomputation to a stated tolerance, or the speedup is not real.</p>
 </section>
 </div>
 
 <footer>
-  <span>Part II of the sigtrade working notes. Part I &mdash; the algebra, and building the v0.1 transformer &mdash; is in <code>docs/notes.html</code>, chapters 1&ndash;5.</span>
+  <span>Part II of the rollsig working notes. Part I &mdash; the algebra, and building the v0.1 transformer &mdash; is in <code>docs/notes.html</code>, chapters 1&ndash;5.</span>
   <span>Generated from live Python sessions (Python 3.14.6, NixOS). Benchmark code and reproduction instructions: <code>benchmarks/orvp/</code>.</span>
 </footer>
 

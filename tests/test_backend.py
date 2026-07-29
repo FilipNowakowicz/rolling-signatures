@@ -6,7 +6,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 
-from sigtrade._backend import (
+from rollsig._backend import (
     _log_signature_expanded,
     _log_signature_full_numpy,
     _words,
@@ -51,7 +51,7 @@ def test_short_path_is_zero():
 
 
 def test_backends_agree(path):
-    iisignature = pytest.importorskip("iisignature")
+    pytest.importorskip("iisignature")
     sig_rp = signature(path, depth=3, backend="roughpy")
     sig_ii = signature(path, depth=3, backend="iisignature")
     assert sig_rp == pytest.approx(sig_ii, abs=1e-8)
@@ -191,7 +191,7 @@ def test_log_signature_backends_disagree_from_level_three(path):
 
 
 def test_log_signature_iisignature_labels_match_feature_count(path):
-    from sigtrade._backend import _log_labels_iisignature
+    from rollsig._backend import _log_labels_iisignature
 
     pytest.importorskip("iisignature")
     labels = _log_labels_iisignature(path.shape[1], 3)

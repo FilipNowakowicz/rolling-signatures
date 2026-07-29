@@ -1,7 +1,7 @@
 """The tensor algebra's own correctness oracles.
 
 `test_backend.py` checks that signatures are right. This checks that the ring
-they live in behaves like a ring -- which is what `sigtrade.streaming` leans
+they live in behaves like a ring -- which is what `rollsig.streaming` leans
 on, so a silent failure here would show up as a plausible-looking rolling
 feature rather than as an exception.
 """
@@ -12,8 +12,8 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 
-from sigtrade._backend import _log_signature_full_numpy, _signature_levels_numpy, signature
-from sigtrade.algebra import (
+from rollsig._backend import _log_signature_full_numpy, _signature_levels_numpy, signature
+from rollsig.algebra import (
     _words,
     dilate,
     from_levels,

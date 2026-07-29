@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from sigtrade import SignatureTransformer, add_basepoint, lead_lag, time_augment
-from sigtrade._backend import n_features, signature
+from rollsig import SignatureTransformer, add_basepoint, lead_lag, time_augment
+from rollsig._backend import n_features, signature
 
 
 def test_time_augmentation_appends_a_local_clock():
