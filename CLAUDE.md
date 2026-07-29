@@ -32,8 +32,8 @@ No work experience — projects are the main evidence base.
 
 ## What this repo is
 
-A standalone, public Python package installed from this repository (not
-PyPI, by choice): a `scikit-learn`-compatible transformer that turns
+A standalone Python package installed from this repository rather than from
+PyPI, by choice: a `scikit-learn`-compatible transformer that turns
 financial time series into **path signature** features, plus a streaming
 engine that slides the window at O(1) steady-state cost per tick.
 

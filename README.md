@@ -37,9 +37,12 @@ pip install -e ".[test]"
 Python 3.10+. `RoughPy` is the default backend and installs as a dependency;
 `iisignature` is an optional extra (`pip install "rollsig[iisignature]"`) and
 is roughly two orders of magnitude faster for log-signatures at the sizes this
-library is aimed at. `rollsig` is installed from this repository rather than
-from PyPI, deliberately: claiming a name in a global namespace is a public and
-not-easily-reversed act, and nothing here needs it.
+library is aimed at.
+
+`rollsig` is installed from this repository rather than from PyPI,
+deliberately: claiming a name in a global namespace is a public and
+not-easily-reversed act, and nothing here needs it. (The repository is
+currently private, so the commands above need access to it.)
 
 ## Use
 
