@@ -110,7 +110,10 @@ published top-solution baselines to reproduce and compare against.
       0.24362 against the HAR-RV set's 0.24075. Caveat stated alongside it:
       the signature arm saw only the WAP path, while the winning baseline
       saw order-book state, so this bounds *price-path* signatures, not
-      signatures as such.
+      signatures as such. **Both points were revisited in v0.2.1**: the
+      caveat was tested and did not change the conclusion, and these
+      figures are seed-0-only — the three-subset mean is −0.99%, not
+      −0.17%, so the numbers above understate the negative result.
 - [x] Truncation-depth × window-length study on this task (features grow
       exponentially in depth; find where held-out performance turns over).
       This replaces the old standalone v0.2 — it's better as part of a real
@@ -126,6 +129,38 @@ published top-solution baselines to reproduce and compare against.
       (`notebooks/orvp-signature-features.ipynb`); publishing is still open
       — it needs the repo public and, for the `pip install` line to work
       for anyone else, ideally the deferred PyPI release.
+
+## v0.2.1 — closing the input-set confound, and replication (done)
+
+v0.2's negative result had one honest objection outstanding: the signature
+arm saw only the WAP path while the baseline it lost to saw order-book
+state, so it was an input-set comparison rather than a feature-family one.
+This closes that, and adds the replication v0.2 lacked.
+
+- [x] Multichannel arm: depth-2 log-signatures of the joint (log-WAP,
+      relative spread, depth imbalance) path over the same 600/300/150 s
+      causal suffix windows, through the same pipeline, learner, GroupKFold
+      splits and grouped bootstrap. Spread and imbalance come from the same
+      functions the `book` arm uses, so the two arms demonstrably read the
+      same quantities. Arms: `multisig`, `multisig+har`, `multisig+book`,
+      `multisig+book+har` (`benchmarks/orvp/features.py`).
+- [x] Replication across three pre-registered 20-stock subsets (seeds 0/1/2,
+      fixed before any arm was scored), with a stop rule stated in advance:
+      a win requires improvement at p < 0.05 on *every* subset
+      (`benchmarks/orvp/multiseed.py`).
+- [x] **Result: the confound was real and was not the explanation.**
+      `multisig` beats `sig` on all three subsets (+0.70%, +0.08%, +1.78%),
+      so the extra channels genuinely help — but `multisig+book+har` is
+      still worse than `book+har` on all three (−0.08%, −1.32%, −0.15%;
+      mean −0.52%), significant on 0 of 3. The stop rule fires.
+- [x] **ORVP is closed.** No further feature engineering on this dataset:
+      two independent attempts have now failed to beat aggregates of the
+      same data, and a third variation would be searching for a subset
+      where the number comes out right rather than testing a hypothesis.
+- [x] Replication also revised v0.2's own numbers. Seed 0 — the subset v0.2
+      reported — is the most favourable of the three; `sig+book+har` vs
+      `book+har` is −0.17% there against a −0.99% mean. The README now
+      leads with the three-subset table.
 
 ## v0.3 — streaming engine (Sept–Oct, interview-season depth)
 

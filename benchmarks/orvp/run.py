@@ -21,12 +21,41 @@ from benchmarks.orvp import data, evaluate, features
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
 
-ARMS = ["har", "book", "book+har", "sig", "sig+har", "sig+book", "sig+book+har"]
+ARMS = [
+    "har",
+    "book",
+    "book+har",
+    "sig",
+    "sig+har",
+    "sig+book",
+    "sig+book+har",
+    "multisig",
+    "multisig+har",
+    "multisig+book",
+    "multisig+book+har",
+]
 
 
-def cache_path(stock_id: int, spec: features.SignatureSpec, root: Path) -> Path:
+def cache_path(
+    stock_id: int,
+    spec: features.SignatureSpec,
+    root: Path,
+    multi_spec: features.MultiSignatureSpec = features.MultiSignatureSpec(),
+) -> Path:
+    """Where one stock's cached feature frame lives.
+
+    The directory name has to name *every* spec that went into the frame,
+    not just the single-channel one. A cached frame is reused verbatim, so a
+    tag that ignored the multichannel spec would silently serve features
+    built under different channels, windows or depth -- the kind of bug that
+    produces a plausible benchmark number for the wrong configuration.
+    """
     windows = "-".join(str(w) for w in spec.windows)
-    tag = f"d{spec.depth}_w{windows}_s{spec.subsample}_ta{int(spec.time_augmentation)}_ll{int(spec.lead_lag_transform)}"
+    tag = (
+        f"d{spec.depth}_w{windows}_s{spec.subsample}"
+        f"_ta{int(spec.time_augmentation)}_ll{int(spec.lead_lag_transform)}"
+        f"__{multi_spec.tag()}"
+    )
     return root / "cache" / tag / f"stock_{stock_id}.parquet"
 
 
@@ -37,12 +66,14 @@ def _build_one(args) -> pd.DataFrame:
     process pools have to pickle whatever comes back, and one frame is
     cheaper to ship than a dataclass of three.
     """
-    stock_id, spec, root, targets = args
-    path = cache_path(stock_id, spec, root)
+    stock_id, spec, multi_spec, root, targets = args
+    path = cache_path(stock_id, spec, root, multi_spec)
     if path.exists():
         return pd.read_parquet(path)
 
-    block = features.build_stock_features(stock_id, targets, root=root, spec=spec)
+    block = features.build_stock_features(
+        stock_id, targets, root=root, spec=spec, multi_spec=multi_spec
+    )
     frame = pd.concat([block.index, block.target.rename("target"), block.features], axis=1)
     path.parent.mkdir(parents=True, exist_ok=True)
     frame.to_parquet(path, index=False)
@@ -55,9 +86,13 @@ def build_table(
     spec: features.SignatureSpec,
     root: Path,
     jobs: int = 1,
+    multi_spec: features.MultiSignatureSpec = features.MultiSignatureSpec(),
 ) -> pd.DataFrame:
     """Feature table for all selected stocks, one row per (stock_id, time_id)."""
-    work = [(stock_id, spec, root, targets[targets["stock_id"] == stock_id]) for stock_id in stocks]
+    work = [
+        (stock_id, spec, multi_spec, root, targets[targets["stock_id"] == stock_id])
+        for stock_id in stocks
+    ]
     if jobs > 1:
         with ProcessPoolExecutor(max_workers=jobs) as pool:
             frames = list(pool.map(_build_one, work))
@@ -112,6 +147,17 @@ def score_arms(table: pd.DataFrame, arms: list[str], n_splits: int = 5, predicti
         ("har", "sig+har"),
         ("book", "sig+book"),
         ("book+har", "sig+book+har"),
+        ("har", "multisig"),
+        ("har", "multisig+har"),
+        ("book", "multisig+book"),
+        # The decisive one: book+har is the best reproduced baseline, so
+        # this is the comparison that says whether multichannel signatures
+        # add anything to what the competition's own feature family already
+        # extracts from the book.
+        ("book+har", "multisig+book+har"),
+        # And whether the extra channels beat the price path on its own.
+        ("sig", "multisig"),
+        ("sig+book+har", "multisig+book+har"),
     ]:
         if baseline in predictions and challenger in predictions:
             comparisons[f"{challenger} vs {baseline}"] = evaluate.paired_bootstrap(
@@ -135,6 +181,9 @@ def main() -> None:
     parser.add_argument("--stocks", type=int, default=20, help="number of stocks in the subset")
     parser.add_argument("--seed", type=int, default=0, help="seed for the stock subset")
     parser.add_argument("--depth", type=int, default=3, help="signature truncation depth")
+    parser.add_argument(
+        "--multi-depth", type=int, default=2, help="truncation depth for the multichannel arm"
+    )
     parser.add_argument("--subsample", type=int, default=1, help="take every Nth second of the grid")
     parser.add_argument("--splits", type=int, default=5, help="number of grouped CV folds")
     parser.add_argument("--jobs", type=int, default=1, help="parallel feature-building workers")
@@ -158,10 +207,11 @@ def main() -> None:
     targets = data.load_targets(root)
     stocks = data.select_stocks(targets, args.stocks, seed=args.seed)
     spec = features.SignatureSpec(depth=args.depth, subsample=args.subsample)
+    multi_spec = features.MultiSignatureSpec(depth=args.multi_depth, subsample=args.subsample)
     print(f"stocks: {stocks}")
 
     started = time.perf_counter()
-    table = build_table(stocks, targets, spec, root, jobs=args.jobs)
+    table = build_table(stocks, targets, spec, root, jobs=args.jobs, multi_spec=multi_spec)
     build_seconds = time.perf_counter() - started
     print(f"feature table: {table.shape[0]} segments x {table.shape[1] - 3} features "
           f"in {build_seconds:.0f}s")
@@ -171,10 +221,14 @@ def main() -> None:
     )
     results["config"] = {
         "stocks": stocks,
+        "seed": args.seed,
         "n_segments": int(table.shape[0]),
         "depth": args.depth,
         "subsample": args.subsample,
         "signature_windows": list(spec.windows),
+        "multi_depth": multi_spec.depth,
+        "multi_windows": list(multi_spec.windows),
+        "multi_channels": list(multi_spec.channels),
         "n_splits": args.splits,
         "build_seconds": round(build_seconds, 1),
     }

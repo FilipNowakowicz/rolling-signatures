@@ -6,7 +6,9 @@ The competition ships one 10-minute order-book segment per
 an irregularly sampled event stream.
 
 Everything downstream wants a regular one-second grid instead, which
-`wap_grid` builds by forward-filling. That is not a modelling compromise:
+`second_grid` builds by forward-filling -- `wap_grid` for the price alone,
+`channel_grids` for the several channels the multichannel signature arm
+reads as coordinates of one path. That is not a modelling compromise:
 forward-filling inserts no new geometry, it only repeats the current price
 until the next update. Since the signature is invariant under
 reparametrisation (docs/notes.html s5.1), the *price* path it sees is
@@ -102,8 +104,36 @@ def wap(book: pd.DataFrame, level: int = 1) -> pd.Series:
     return (bid_price * ask_size + ask_price * bid_size) / (bid_size + ask_size)
 
 
-def wap_grid(book: pd.DataFrame, level: int = 1, n_seconds: int = SECONDS_PER_SEGMENT) -> pd.DataFrame:
-    """Forward-filled WAP on a regular one-second grid.
+def relative_spread(book: pd.DataFrame) -> pd.Series:
+    """Top-of-book spread as a fraction of the mid.
+
+    Relative, not absolute, so the number is comparable across stocks
+    trading at different price levels -- the same reason the target is a
+    volatility of log returns rather than of prices.
+    """
+    bid = book["bid_price1"]
+    ask = book["ask_price1"]
+    return (ask - bid) / ((ask + bid) / 2)
+
+
+def depth_imbalance(book: pd.DataFrame) -> pd.Series:
+    """Signed share of resting size on the bid, over both book levels.
+
+    Runs in [-1, 1]: +1 is an all-bid book, -1 an all-ask one. This is the
+    standard order-flow-pressure proxy, and the channel most likely to carry
+    information the price path alone does not.
+    """
+    bid = book["bid_size1"] + book["bid_size2"]
+    ask = book["ask_size1"] + book["ask_size2"]
+    # A book with no resting size on either side has no imbalance to speak
+    # of; guarding the denominator keeps that case at 0 rather than NaN.
+    return (bid - ask) / np.maximum(bid + ask, 1.0)
+
+
+def second_grid(
+    book: pd.DataFrame, values: pd.Series, n_seconds: int = SECONDS_PER_SEGMENT
+) -> pd.DataFrame:
+    """Forward-fill any per-snapshot series onto a regular one-second grid.
 
     Returns a frame indexed by `time_id` with columns `0 .. n_seconds-1`.
     Where a segment has several book updates inside the same second, the
@@ -114,15 +144,60 @@ def wap_grid(book: pd.DataFrame, level: int = 1, n_seconds: int = SECONDS_PER_SE
         {
             "time_id": book["time_id"].to_numpy(),
             "second": book["seconds_in_bucket"].to_numpy(),
-            "wap": wap(book, level).to_numpy(),
+            "value": np.asarray(values, dtype=float),
         }
     )
-    grid = frame.pivot_table(index="time_id", columns="second", values="wap", aggfunc="last")
+    grid = frame.pivot_table(index="time_id", columns="second", values="value", aggfunc="last")
     grid = grid.reindex(columns=range(n_seconds))
     # ffill carries the standing quote forward; bfill only fires for the rare
     # segment whose first update lands after second 0, and looks forward only
     # within the observed window, never into the target window.
     return grid.ffill(axis=1).bfill(axis=1)
+
+
+def wap_grid(book: pd.DataFrame, level: int = 1, n_seconds: int = SECONDS_PER_SEGMENT) -> pd.DataFrame:
+    """Forward-filled WAP on a regular one-second grid."""
+    return second_grid(book, wap(book, level), n_seconds)
+
+
+CHANNELS = ("log_wap", "spread", "imbalance")
+"""Book-derived channels the multichannel signature arm reads.
+
+Log-WAP is the price path the single-channel arm already sees. Spread and
+imbalance are the two order-book state variables the reproduced
+top-solution arm found most useful, and they are what a *path* signature
+can say something new about: the cross terms at level 2 are the quadratic
+covariations between price and book pressure, which no per-window average
+of either channel can express.
+"""
+
+
+def channel_grids(
+    book: pd.DataFrame, channels: tuple[str, ...] = CHANNELS, n_seconds: int = SECONDS_PER_SEGMENT
+) -> dict[str, pd.DataFrame]:
+    """One forward-filled one-second grid per named channel, sharing an index.
+
+    Built in a single pass and returned together because every channel has
+    to be sampled on the *same* grid: a multichannel signature reads the
+    channels as coordinates of one path, so a row of one grid must describe
+    the same second as the same row of another.
+    """
+    series = {
+        "log_wap": lambda: np.log(wap(book, level=1)),
+        "wap": lambda: wap(book, level=1),
+        "spread": lambda: relative_spread(book),
+        "imbalance": lambda: depth_imbalance(book),
+    }
+    unknown = [c for c in channels if c not in series]
+    if unknown:
+        raise ValueError(f"unknown channel(s) {unknown}; expected from {tuple(series)}")
+    grids = {name: second_grid(book, series[name](), n_seconds) for name in channels}
+
+    first = grids[channels[0]]
+    for name, grid in grids.items():
+        if not grid.index.equals(first.index) or not grid.columns.equals(first.columns):
+            raise AssertionError(f"channel {name!r} is not on the same grid as {channels[0]!r}")
+    return grids
 
 
 def log_return_grid(grid: pd.DataFrame) -> np.ndarray:
