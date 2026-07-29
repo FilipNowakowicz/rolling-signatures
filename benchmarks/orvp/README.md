@@ -55,13 +55,21 @@ layout is the competition archive's own:
 ## Reproducing a run
 
 ```bash
-python -m benchmarks.orvp.run   --stocks 20 --jobs 8    # all arms
-python -m benchmarks.orvp.study --stocks 20 --jobs 8    # depth x window
+python -m benchmarks.orvp.run       --stocks 20 --jobs 8       # all arms, one subset
+python -m benchmarks.orvp.multiseed --seeds 0 1 2 --jobs 8     # all arms, three subsets
+python -m benchmarks.orvp.study     --stocks 20 --jobs 8       # depth x window
+```
+
+`multiseed` needs each seed's stocks on disk first:
+
+```bash
+for seed in 0 1 2; do python -m benchmarks.orvp.download --stocks 20 --seed $seed; done
 ```
 
 Results land in `results/` as JSON plus a markdown table. Per-stock features
-are cached under `<data dir>/cache/`, keyed by the signature spec, so
-rerunning a scoring pass costs only the model fits.
+are cached under `<data dir>/cache/`, keyed by *both* signature specs — the
+single-channel one and the multichannel one — so a run can never be served a
+cached frame that was built under a different configuration.
 
 Runtime is dominated by the gradient-boosting fits, not by the signatures —
 building every feature for a stock takes well under a second, while one
@@ -80,8 +88,46 @@ equally, since each stock has its own baseline volatility level.
 | `naive` | Predict the observed window's realized volatility. No model. Volatility is strongly persistent, so this is a hard floor. |
 | `har` | HAR-RV-style: realized volatility over nested suffix windows (600/300/150/60/30 s), plus activity and quarticity terms. |
 | `book` | Reproduced top-solution-style order-book and trade aggregates: WAP realized volatility at both levels, relative spread, depth imbalance, trade intensity, over nested windows. |
-| `sig` | `sigtrade` log-signatures of the lead-lag, time-augmented log-WAP path over the same nested windows. |
+| `sig` | `sigtrade` log-signatures of the lead-lag, time-augmented log-WAP path over the same nested windows. Depth 3. |
 | `sig+har`, `sig+book`, `sig+book+har` | Marginal value: what signatures add *on top of* a baseline, which is the question that actually matters. |
+| `multisig` | Log-signatures of the *joint* (log-WAP, spread, imbalance) path over the same windows. Depth 2. |
+| `multisig+har`, `multisig+book`, `multisig+book+har` | The same marginal-value question for the multichannel arm. |
+
+### Why a multichannel arm exists (v0.2.1)
+
+v0.2's negative result had an obvious confound: the `sig` arm saw only the
+WAP price path, while the `book` arm it lost to saw order-book *state*. That
+made it an input-set comparison, not a feature-family one. `multisig` gives
+the signature arm the same two state variables — relative spread and depth
+imbalance — as extra channels of one path, computed from the same functions
+`book` uses (`data.relative_spread`, `data.depth_imbalance`), so the two arms
+are demonstrably reading the same quantities.
+
+**Depth 2, not 3.** Three channels plus time, doubled by lead-lag, is an
+8-dimensional path; the free Lie algebra on 8 generators has 36 coordinates
+at depth 2 and 336 at depth 3. Depth 2 is also where the theory points: the
+level-2 lead-lag coordinates of a channel *pair* are that pair's discrete
+quadratic covariation, so what this arm can say that no per-window mean or
+standard deviation can is "the spread widened *while* the price moved". If
+multichannel signatures earn anything here, that is the term that earns it.
+
+**No channel normalisation, deliberately.** Scaling a channel by a constant
+multiplies each log-signature coordinate by a fixed power of it — the same
+factor on every row — so it is a positive per-feature rescaling, and the
+gradient-boosted trees are exactly invariant to those. Channels stay in
+natural units; `tests/test_orvp.py` pins the invariance down rather than
+leaving it as an assertion in a docstring.
+
+### Repeating across stock subsets
+
+One 20-stock subset cannot distinguish "this feature family helps" from
+"this feature family helps *on these twenty stocks*", and the grouped
+bootstrap cannot either — it resamples `time_id`s, so it prices in
+market-instant variation with the universe held fixed. `multiseed` reruns
+everything on three subsets drawn from fixed seeds (0, 1, 2), chosen before
+any arm was scored. A comparison counts as a win only if it improves with
+p(no improvement) < 0.05 on **every** seed; two out of three is not
+consistency.
 
 ## Design decisions worth knowing about
 
@@ -111,6 +157,39 @@ bases of the free Lie algebra — they agree through level 2 and diverge at
 level 3 — so an arm must be fitted and scored on the same backend.
 `tests/test_backend.py` pins both down against a basis-independent oracle.
 
+## Result
+
+Three pre-registered subsets, all eleven arms, one shared learner. Full
+tables in `results/multiseed_table.md`; the per-seed bootstrap intervals are
+in `results/multiseed.json`.
+
+| Comparison | seed 0 | seed 1 | seed 2 | Mean | Seeds significant |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `book+har` vs `naive` | +31.03% | +32.45% | +31.23% | +31.57% | 3/3 |
+| `sig+book+har` vs `book+har` | −0.17% | −1.78% | −1.02% | −0.99% | 0/3 |
+| `multisig+book+har` vs `book+har` | −0.08% | −1.32% | −0.15% | −0.52% | 0/3 |
+| `multisig` vs `sig` | +0.70% | +0.08% | +1.78% | +0.85% | 1/3 |
+| `multisig+book+har` vs `sig+book+har` | +0.09% | +0.45% | +0.87% | +0.47% | 0/3 |
+
+**The multichannel arm beats the price-only arm on every subset and still
+loses to the aggregates on every subset.** The v0.2 confound was real —
+giving signatures the order-book state does help them — and it was not the
+explanation. The headline comparison is negative on all three seeds and
+significant on none, so the pre-registered stop rule fires: **the ORVP
+search is closed.**
+
+Two things the replication caught that a single run would not have:
+
+- **Seed 0 was the most favourable subset**, and it is the one v0.2
+  reported. `sig+book+har` vs `book+har` is −0.17% there and −1.78% on seed
+  1. `multisig+har` vs `har` is *positive* on seed 0 (+0.72%) and negative
+  on both others (−1.75%, −2.14%). Single-subset readings of these arms
+  would have supported conclusions the other subsets contradict.
+- **`book` alone beats `book+har` on two of three subsets**, so the
+  strongest baseline is not the same arm everywhere. `book+har` was fixed as
+  the comparator in advance precisely so the target could not drift toward
+  whichever baseline happened to be weakest.
+
 ## What the results do and do not claim
 
 The private leaderboard was rescored on market data from *after* the
@@ -125,3 +204,10 @@ If that number is negative — if signatures do not help — it is reported as
 negative. A confidence interval from a bootstrap over whole `time_id`
 groups accompanies every headline comparison, because the difference
 between two arms is often smaller than the noise in either.
+
+Nor does the negative result generalise beyond this task. It says that on
+10-minute order-book segments, with this learner and these baselines,
+signatures of the book do not beat aggregates of the book. It says nothing
+about signatures on other horizons, other instruments, or other targets, and
+it is not evidence about the streaming engine (v0.3), which is a claim about
+computational cost rather than predictive value.

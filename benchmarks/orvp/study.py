@@ -27,6 +27,13 @@ import pandas as pd
 from benchmarks.orvp import data, evaluate, features
 from benchmarks.orvp.run import RESULTS_DIR, build_table
 
+NO_MULTISIG = features.MultiSignatureSpec(windows=())
+"""This study varies the single-channel spec only.
+
+Building the multichannel arm as well would cost nine extra passes over the
+book for columns the study never reads.
+"""
+
 DEPTHS = (2, 3, 4)
 WINDOW_SETS = {
     "600": (600,),
@@ -50,7 +57,7 @@ def run_study(
         for name, windows in window_sets.items():
             spec = features.SignatureSpec(depth=depth, windows=windows, subsample=subsample)
             started = time.perf_counter()
-            table = build_table(stocks, targets, spec, root, jobs=jobs)
+            table = build_table(stocks, targets, spec, root, jobs=jobs, multi_spec=NO_MULTISIG)
             build_seconds = time.perf_counter() - started
 
             y = table["target"].to_numpy()

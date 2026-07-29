@@ -17,8 +17,10 @@ from sigtrade._backend import (
     signature,
 )
 from sigtrade.preprocessing import preprocess_path
+from sigtrade.streaming import Refresh, StreamingSignature
 
 Output = Literal["signature", "log_signature"]
+Method = Literal["auto", "batch", "streaming"]
 
 
 class SignatureTransformer(BaseEstimator, TransformerMixin):
@@ -28,6 +30,11 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
     of the most recent `window` points ending at and including `t` (fewer
     points at the start of the series, when a full window isn't yet
     available). The row at `t` is a function of `X[:t+1]` only.
+
+    `method` selects how those rows get computed -- see `_validate_parameters`
+    and `sigtrade.streaming`. The two routes agree to floating-point noise;
+    which one is faster depends on the window length and the backend, and
+    `benchmarks/streaming/` measures where the crossover falls.
     """
 
     def __init__(
@@ -40,6 +47,8 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
         lead_lag_transform: bool = False,
         rescale: bool = False,
         output: Output = "signature",
+        method: Method = "auto",
+        refresh_every: Refresh = "auto",
     ):
         self.window = window
         self.depth = depth
@@ -49,10 +58,13 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
         self.lead_lag_transform = lead_lag_transform
         self.rescale = rescale
         self.output = output
+        self.method = method
+        self.refresh_every = refresh_every
 
     def fit(self, X, y=None):
         X = check_array(X)
         self._validate_parameters()
+        self.method_ = "streaming" if self._streaming_eligible() and self.method != "batch" else "batch"
         self.n_features_in_ = X.shape[1]
         transformed_dim = self.n_features_in_ + int(self.time_augmentation)
         if self.lead_lag_transform:
@@ -69,10 +81,18 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
         if X.shape[1] != self.n_features_in_:
             raise ValueError(f"X has {X.shape[1]} features, expected {self.n_features_in_}")
 
-        n_samples = X.shape[0]
-        out = np.empty((n_samples, self.n_output_features_))
+        out = self._transform_streaming(X) if self.method_ == "streaming" else self._transform_batch(X)
+        if self.rescale:
+            out *= np.concatenate(
+                [np.full(self._transformed_dim**level, factorial(level)) for level in range(1, self.depth + 1)]
+            )
+        return out
+
+    def _transform_batch(self, X):
+        """Recompute each window from scratch, through the chosen backend."""
+        out = np.empty((X.shape[0], self.n_output_features_))
         compute = log_signature if self.output == "log_signature" else signature
-        for t in range(n_samples):
+        for t in range(X.shape[0]):
             start = max(0, t + 1 - self.window)
             path = preprocess_path(
                 X[start : t + 1],
@@ -81,11 +101,42 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
                 lead_lag_transform=self.lead_lag_transform,
             )
             out[t] = compute(path, self.depth, backend=self.backend)
-        if self.rescale:
-            out *= np.concatenate(
-                [np.full(self._transformed_dim**level, factorial(level)) for level in range(1, self.depth + 1)]
-            )
         return out
+
+    def _transform_streaming(self, X):
+        """Slide one window along the series (`sigtrade.streaming`).
+
+        `backend` is not consulted here: a sliding update is arithmetic in the
+        tensor algebra, not a call into a signature engine. The results agree
+        with every backend to floating-point noise, which
+        `tests/test_streaming.py` checks.
+        """
+        engine = StreamingSignature(
+            window=self.window,
+            depth=self.depth,
+            dim=self.n_features_in_,
+            time_augmentation=self.time_augmentation,
+            lead_lag_transform=self.lead_lag_transform,
+            refresh_every=self.refresh_every,
+        )
+        return engine.extend(X)
+
+    def _streaming_eligible(self) -> bool:
+        """Whether the streaming engine can reproduce this configuration.
+
+        Two exclusions, both structural rather than unfinished work:
+
+        * `basepoint` pins the path to the origin, so sliding the window
+          rewrites its leading increment instead of dropping it -- the window
+          is no longer a sub-path of the previous one.
+        * `output='log_signature'` returns coordinates in a backend's own basis
+          of the free Lie algebra (see `_backend.log_signature`), and the
+          streaming update lives in the full tensor algebra. Taking the log of
+          the streamed tensor would land in canonical word coordinates, which
+          are *not* the columns the batch route produces, so the two would
+          silently disagree.
+        """
+        return not self.basepoint and self.output == "signature"
 
     def get_feature_names_out(self, input_features=None):
         if self.output == "log_signature":
@@ -111,3 +162,11 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
             raise ValueError("output must be 'signature' or 'log_signature'")
         if self.output == "log_signature" and self.rescale:
             raise ValueError("rescale is not yet implemented for output='log_signature'")
+        if self.method not in ("auto", "batch", "streaming"):
+            raise ValueError("method must be 'auto', 'batch' or 'streaming'")
+        if self.method == "streaming" and not self._streaming_eligible():
+            reason = "basepoint=True" if self.basepoint else "output='log_signature'"
+            raise ValueError(
+                f"method='streaming' does not support {reason}; use method='batch' or 'auto' "
+                "(see SignatureTransformer._streaming_eligible)"
+            )

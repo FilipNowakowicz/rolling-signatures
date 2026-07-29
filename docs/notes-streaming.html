@@ -1,0 +1,538 @@
+<title>sigtrade &mdash; Working Notes, Part III: The Streaming Engine</title>
+<style>
+  :root {
+    --bg: #f5f6f7;
+    --bg-raised: #ffffff;
+    --ink: #1a1d23;
+    --ink-soft: #55606e;
+    --ink-faint: #838d99;
+    --accent: #2c4a6e;
+    --accent-soft: #dce6ee;
+    --verify: #a86423;
+    --verify-soft: #f3e4d3;
+    --rule: #d8dbdf;
+    --code-bg: #eef0f2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c;
+      --bg-raised: #1b1f26;
+      --ink: #e7e9ec;
+      --ink-soft: #9ca6b3;
+      --ink-faint: #6b7580;
+      --accent: #86b6d6;
+      --accent-soft: #223040;
+      --verify: #e0a164;
+      --verify-soft: #33261a;
+      --rule: #2a2f37;
+      --code-bg: #20242b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c;
+    --bg-raised: #1b1f26;
+    --ink: #e7e9ec;
+    --ink-soft: #9ca6b3;
+    --ink-faint: #6b7580;
+    --accent: #86b6d6;
+    --accent-soft: #223040;
+    --verify: #e0a164;
+    --verify-soft: #33261a;
+    --rule: #2a2f37;
+    --code-bg: #20242b;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f7;
+    --bg-raised: #ffffff;
+    --ink: #1a1d23;
+    --ink-soft: #55606e;
+    --ink-faint: #838d99;
+    --accent: #2c4a6e;
+    --accent-soft: #dce6ee;
+    --verify: #a86423;
+    --verify-soft: #f3e4d3;
+    --rule: #d8dbdf;
+    --code-bg: #eef0f2;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: ui-serif, "Iowan Old Style", "Palatino Linotype", "URW Palladio L", "Book Antiqua", Georgia, serif;
+    font-size: 17px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 4rem 1.5rem 6rem;
+  }
+
+  .page {
+    max-width: 40rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3.2rem;
+  }
+
+  header.masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding-bottom: 1.8rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .eyebrow {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  h1 {
+    font-size: 2.1rem;
+    line-height: 1.15;
+    margin: 0;
+    text-wrap: balance;
+    font-weight: 600;
+  }
+
+  .subtitle {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+
+  /* table of contents */
+  nav.toc {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1.1rem 1.4rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.88rem;
+  }
+  nav.toc .toc-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 600;
+    margin-bottom: 0.7rem;
+  }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  nav.toc > ol > li > a { font-weight: 600; color: var(--ink); }
+  nav.toc ol ol { margin-top: 0.35rem; padding-left: 1.2rem; gap: 0.3rem; }
+  nav.toc ol ol a { color: var(--ink-soft); font-weight: 400; }
+  nav.toc a { text-decoration: none; }
+  nav.toc a:hover { color: var(--accent); }
+  nav.toc .status {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    color: var(--verify);
+    margin-left: 0.5rem;
+  }
+
+  .chapter {
+    display: flex;
+    flex-direction: column;
+    gap: 1.8rem;
+  }
+
+  .chapter-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding-bottom: 0.6rem;
+  }
+  .chapter-head .eyebrow { color: var(--accent); }
+  h2.chapter-title {
+    font-size: 1.7rem;
+    margin: 0;
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    scroll-margin-top: 1.5rem;
+  }
+
+  h3 {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    font-size: 1.25rem;
+    margin: 0;
+    font-weight: 600;
+  }
+
+  h3 .sec-no {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    font-weight: 500;
+  }
+
+  p { margin: 0; max-width: 62ch; }
+
+  .figure {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    overflow-x: auto;
+  }
+
+  .figure svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+  .caption {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+
+  .eqn {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 2px;
+    padding: 0.9rem 1.2rem;
+    overflow-x: auto;
+  }
+  .eqn math { font-size: 1.15rem; }
+
+  .verified {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--verify);
+    background: var(--verify-soft);
+    border-radius: 3px;
+    padding: 0.15rem 0.5rem;
+    width: fit-content;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+  }
+  th, td {
+    text-align: right;
+    padding: 0.4rem 0.7rem;
+    border-bottom: 1px solid var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  th:first-child, td:first-child { text-align: left; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  th {
+    color: var(--ink-soft);
+    font-weight: 600;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg-raised); }
+  .tablewrap table { margin: 0; }
+  .tablewrap td, .tablewrap th { border-bottom: 1px solid var(--rule); }
+  .tablewrap tr:last-child td { border-bottom: none; }
+
+  code {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border-radius: 3px;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.88em;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 0.9rem 1.1rem;
+    overflow-x: auto;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; }
+  .bad code, .bad { color: var(--verify); }
+  .good code, .good { color: var(--ink); }
+
+  .note {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    background: var(--accent-soft);
+    border-radius: 4px;
+    padding: 0.8rem 1rem;
+  }
+  .note b { color: var(--ink); }
+
+  .bug {
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--verify);
+    border-radius: 2px;
+    padding: 0.9rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    background: var(--bg-raised);
+  }
+  .bug .bug-label {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--verify);
+    font-weight: 600;
+  }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.6rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+</style>
+
+<div class="page">
+
+<header class="masthead">
+  <span class="eyebrow">sigtrade &middot; working notes &middot; part III</span>
+  <h1>The Streaming Engine</h1>
+  <span class="subtitle">Part III of the working notes &mdash; v0.3, the sliding-window signature. Part I (the algebra, and building v0.1) is in <code>docs/notes.html</code>; Part II (the Optiver benchmark) in <code>docs/notes-orvp.html</code>. Last updated 29 July 2026.</span>
+</header>
+
+<nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">Contents &mdash; continuing from Part II &sect;9.1</div>
+  <ol>
+    <li><a href="#ch10">Chapter 10 &mdash; The Sliding Identity</a>
+      <ol>
+        <li><a href="#ch10-1">10.1 What one tick actually changes</a></li>
+        <li><a href="#ch10-2">10.2 The inverse, twice</a></li>
+        <li><a href="#ch10-3">10.3 Preprocessing arrives in blocks</a></li>
+        <li><a href="#ch10-4">10.4 The one option that does not survive</a></li>
+      </ol>
+    </li>
+    <li><a href="#ch11">Chapter 11 &mdash; Making O(1) Fast Enough to Matter</a><span class="status">flat 10 &rarr; 1200</span>
+      <ol>
+        <li><a href="#ch11-1">11.1 The constant that nearly ate the asymptotics</a></li>
+        <li><a href="#ch11-2">11.2 Flat in the window</a></li>
+        <li><a href="#ch11-3">11.3 The crossover, and who actually wins</a></li>
+        <li><a href="#ch11-4">11.4 A retraction: &sect;9.1's nested-window plan</a></li>
+      </ol>
+    </li>
+    <li><a href="#ch12">Chapter 12 &mdash; Drift</a>
+      <ol>
+        <li><a href="#ch12-1">12.1 What accumulates, and along which axis</a></li>
+        <li><a href="#ch12-2">12.2 Re-anchoring, for free</a></li>
+        <li><a href="#ch12-3">12.3 Where v0.3 stands</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+
+<div class="chapter" id="ch10">
+<div class="chapter-head">
+  <span class="eyebrow">Chapter 10</span>
+  <h2 class="chapter-title">The Sliding Identity</h2>
+</div>
+
+<section id="ch10-1">
+  <h3><span class="sec-no">10.1</span> What one tick actually changes</h3>
+  <p>A rolling window of <i>w</i> points advancing by one point shares <i>w</i>&minus;1 points with its predecessor. Recomputing the signature from scratch reads all <i>w</i> of them; almost all of that work was done a tick ago and thrown away. &sect;1.6 already says it does not have to be. Split the old window into its first increment and the rest, and the new window into that same rest and its final increment:</p>
+  <div class="eqn">
+    <math display="block"><mrow><mi>S</mi><mo>(</mo><msub><mi>W</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>)</mo><mo>=</mo><mi>S</mi><msup><mrow><mo>(</mo><mi>out</mi><mo>)</mo></mrow><mrow><mo>&minus;</mo><mn>1</mn></mrow></msup><mo>&sdot;</mo><mi>S</mi><mo>(</mo><msub><mi>W</mi><mi>t</mi></msub><mo>)</mo><mo>&sdot;</mo><mi>S</mi><mo>(</mo><mi>in</mi><mo>)</mo></mrow></math>
+  </div>
+  <p>Chen's identity supplies the two products; the group structure supplies the inverse. Neither factor knows how long the window is &mdash; <code>out</code> is the increment leaving at the left end, <code>in</code> the one arriving at the right &mdash; so the cost of a tick is a function of <code>depth</code> and the channel count alone. That is the whole of v0.3. Everything after this section is about whether the constant, the preprocessing and the floating-point arithmetic cooperate.</p>
+  <div class="note"><b>Worth being precise about what is new.</b> Nothing in this identity is a result; it is two lines of undergraduate algebra applied to an object rough-path theory has understood since the 1950s. What no high-level library exposes is the identity <i>as a rolling-feature API</i> &mdash; the engines compute signatures of paths you hand them, and rebuilding a window each tick is the natural way to call them.</div>
+</section>
+
+<section id="ch10-2">
+  <h3><span class="sec-no">10.2</span> The inverse, twice</h3>
+  <p>The truncated tensor algebra makes the inverse embarrassingly concrete. For an element <i>a</i> with scalar part 1, solving (<i>a</i> &sdot; <i>a</i><sup>&minus;1</sup>)<sub><i>k</i></sub> = 0 level by level gives</p>
+  <div class="eqn">
+    <math display="block"><mrow><msubsup><mi>a</mi><mi>k</mi><mrow><mo>&minus;</mo><mn>1</mn></mrow></msubsup><mo>=</mo><mo>&minus;</mo><munderover><mo>&sum;</mo><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><msub><mi>a</mi><mi>j</mi></msub><mo>&otimes;</mo><msubsup><mi>a</mi><mrow><mi>k</mi><mo>&minus;</mo><mi>j</mi></mrow><mrow><mo>&minus;</mo><mn>1</mn></mrow></msubsup></mrow></math>
+  </div>
+  <p>a triangular recursion that terminates at level <code>depth</code>. This is worth saying out loud because it is easy to assume otherwise: the inverse is <i>not</i> a series being truncated for convenience. Truncation happens once, when the algebra is chosen; inside it the inverse is exact, and <code>tensor_inverse</code> computes it in <code>depth</code> passes.</p>
+  <p>It also has a reading at the level of paths. The inverse of <i>S</i>(<i>x</i>) is the signature of <i>x</i> walked backwards, and coordinate by coordinate it is the Hopf-algebra antipode: the coefficient of a word <i>w</i> in <i>S</i><sup>&minus;1</sup> is (&minus;1)<sup>|<i>w</i>|</sup> times the coefficient of <i>w</i> reversed in <i>S</i>. Both statements are tests rather than remarks.</p>
+  <span class="verified">tests/test_algebra.py &mdash; two-sided inverse (hypothesis), antipode word formula, inverse = signature of the reversed path</span>
+  <p>And then the practical joke: the hot path never runs that recursion. The departing piece of a sliding window is a single straight segment, whose signature is exp(<i>v</i>), and</p>
+  <div class="eqn">
+    <math display="block"><mrow><mi>exp</mi><msup><mrow><mo>(</mo><mi>v</mi><mo>)</mo></mrow><mrow><mo>&minus;</mo><mn>1</mn></mrow></msup><mo>=</mo><mi>exp</mi><mo>(</mo><mo>&minus;</mo><mi>v</mi><mo>)</mo></mrow></math>
+  </div>
+  <p>&mdash; the path reading again, now doing work: to undo a straight segment, walk it backwards. <code>streaming._block_inverse</code> reverses the block and negates each vector, which is both cheaper than the recursion and better conditioned, since it never forms the large intermediate products the recursion does. The two are pinned against each other in the tests, so the shortcut cannot silently stop being the inverse. The general recursion is still what <code>suffix_signature</code> uses, where the departing piece is an arbitrary cached prefix rather than one segment.</p>
+</section>
+
+<section id="ch10-3">
+  <h3><span class="sec-no">10.3</span> Preprocessing arrives in blocks</h3>
+  <p>The identity in &sect;10.1 is about the raw window. <code>sigtrade</code>'s windows are not raw &mdash; the ORVP arm feeds a time-augmented, lead-lag embedded path, and the whole point of the library is that those defaults are the finance-facing part. So the question is whether preprocessing destroys the decomposition, and the answer is that it does not: each raw increment <i>d</i> maps to a fixed-size <i>block</i> of preprocessed increments, independent of everything else in the window.</p>
+<pre><code>plain      d  ->  [d]
+time-aug   d  ->  [(d, dt)]
+lead-lag   d  ->  [(d, 0), (0, d)]
+both       d  ->  [(d, dt, 0, 0), (0, 0, d, dt)]</code></pre>
+  <p>A block is one or two increments and never more, so sliding stays constant-size. This is the assumption the whole module rests on, and it is checked directly against <code>preprocess_path</code> rather than inferred &mdash; if the preprocessing ever stopped decomposing this way, every other test would still pass on the shared code path.</p>
+  <span class="verified">tests/test_streaming.py &mdash; the block encoding reproduces np.diff(preprocess_path(...)) exactly, for all four combinations</span>
+  <p>One consequence is easy to miss. <code>time_augment</code> spreads its channel over [0, 1] across however many points it is given, so <code>dt</code> = 1/(<i>w</i>&minus;1) is a constant only once the window is <i>full</i>. While the window is still filling, every tick renormalises the time channel and thereby changes every increment already accumulated &mdash; the sliding identity simply does not apply to it. The engine recomputes during the fill and streams thereafter. That costs O(<i>w</i><sup>2</sup>) once at the head of a stream, which amortises to nothing over a long one but is a real cost on short series and is worth naming rather than hiding.</p>
+</section>
+
+<section id="ch10-4">
+  <h3><span class="sec-no">10.4</span> The one option that does not survive</h3>
+  <p><code>basepoint</code> prepends the origin, so the path is 0, <i>p</i><sub>0</sub>, &hellip;, <i>p</i><sub><i>w</i>&minus;1</sub> and its leading increment is <i>p</i><sub>0</sub> itself. Slide by one and the leading increment becomes <i>p</i><sub>1</sub> &mdash; not the old <i>p</i><sub>0</sub> &rarr; <i>p</i><sub>1</sub> increment. The new window is no longer a sub-path of the old one at all, so there is nothing to cancel. It could be patched around at the cost of two extra multiplications per tick; it is refused instead, because <code>basepoint</code> exists precisely to break the translation invariance that makes the rest of this work, and a streaming path that quietly reintroduced it would be worse than an honest fallback.</p>
+  <p><code>output="log_signature"</code> is refused for a different reason: it returns coordinates in a <i>backend's</i> basis of the free Lie algebra (&sect;6.2), while the streaming update lives in the full tensor algebra. Taking a log of the streamed tensor lands in canonical word coordinates, which are not the columns the batch route produces. The two would disagree without erroring &mdash; the exact failure mode &sect;6.2 built a test to prevent &mdash; so <code>method="auto"</code> falls back to batch and <code>method="streaming"</code> raises.</p>
+</section>
+</div>
+
+<div class="chapter" id="ch11">
+<div class="chapter-head">
+  <span class="eyebrow">Chapter 11</span>
+  <h2 class="chapter-title">Making O(1) Fast Enough to Matter</h2>
+</div>
+
+<section id="ch11-1">
+  <h3><span class="sec-no">11.1</span> The constant that nearly ate the asymptotics</h3>
+  <p>The first working version was correct, was flat in the window &mdash; and was slower than recomputing for any window under a couple of hundred points. It cost about 1,080 &micro;s per tick, which is an absurd figure for arithmetic on a few hundred doubles.</p>
+  <p>The profile said the arithmetic was not the cost:</p>
+<pre><code>ncalls  tottime  function
+ 62000    0.689  numpy/lib/_shape_base_impl.py:1038(kron)
+248000    0.505  numpy/lib/_shape_base_impl.py:513(expand_dims)
+248000    0.391  numpy/_core/numeric.py:1426(normalize_axis_tuple)</code></pre>
+  <p>62 <code>np.kron</code> calls per tick, and <code>kron</code>'s own dispatch machinery &mdash; <code>expand_dims</code>, <code>normalize_axis_tuple</code>, reshapes &mdash; accounting for most of the time. <code>np.kron</code> is general over n-dimensional inputs. Every level here is one-dimensional, and for 1-D arrays the Kronecker product is just a flattened outer product:</p>
+<pre><code>np.multiply.outer(a, b).ravel()</code></pre>
+  <p>Same numbers, about six times the throughput on this workload. It is a boring optimisation and it is the reason the chapter exists: the asymptotics were correct in the first version and completely irrelevant until the constant was dealt with. An O(1) update that costs a millisecond loses to an O(<i>w</i>) recompute for every window anyone actually uses.</p>
+</section>
+
+<section id="ch11-2">
+  <h3><span class="sec-no">11.2</span> Flat in the window</h3>
+  <p>The claim under test is not "streaming is fast" but "streaming does not care how long the window is." One channel, time-augmented and lead-lagged &mdash; the configuration <code>benchmarks/orvp</code> feeds its signature arm &mdash; measured per tick in the steady state, after the window has filled:</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>depth</th><th>window</th><th>streaming</th><th>+ auto refresh</th><th>batch numpy</th><th>batch iisignature</th><th>batch RoughPy</th></tr></thead>
+      <tbody>
+        <tr><td>2</td><td>10</td><td>127.0</td><td>157.4</td><td>458.8</td><td>22.4</td><td>216.3</td></tr>
+        <tr><td>2</td><td>30</td><td>129.4</td><td>168.9</td><td>1383.6</td><td>25.6</td><td>426.7</td></tr>
+        <tr><td>2</td><td>100</td><td>127.7</td><td>171.8</td><td>4726.2</td><td>37.9</td><td>1163.9</td></tr>
+        <tr><td>2</td><td>300</td><td>130.3</td><td>173.4</td><td>14146.0</td><td>71.8</td><td>3280.7</td></tr>
+        <tr><td>2</td><td>600</td><td>132.0</td><td>170.6</td><td>28542.2</td><td>125.1</td><td>6546.3</td></tr>
+        <tr><td>2</td><td>1200</td><td>135.0</td><td>178.8</td><td>60000.1</td><td>231.4</td><td>13291.2</td></tr>
+        <tr><td>3</td><td>10</td><td>203.0</td><td>249.5</td><td>722.5</td><td>27.1</td><td>528.0</td></tr>
+        <tr><td>3</td><td>30</td><td>200.6</td><td>264.0</td><td>2232.9</td><td>39.4</td><td>874.0</td></tr>
+        <tr><td>3</td><td>100</td><td>189.9</td><td>259.9</td><td>7402.4</td><td>73.8</td><td>2374.5</td></tr>
+        <tr><td>3</td><td>300</td><td>194.4</td><td>265.8</td><td>22483.7</td><td>172.5</td><td>6673.0</td></tr>
+        <tr><td>3</td><td>600</td><td>197.0</td><td>260.2</td><td>45987.6</td><td>326.4</td><td>13208.0</td></tr>
+        <tr><td>3</td><td>1200</td><td>201.9</td><td>264.6</td><td>91302.8</td><td>628.0</td><td>25987.6</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="caption">Microseconds per tick, steady state. One channel, time-augmented and lead-lagged.</div>
+  <p>Read the <code>streaming</code> column down: a hundred-and-twenty-fold change in window length moves it by a few percent, and what movement there is has no consistent sign. That is the theorem, measured. The recompute columns move by exactly the factor the window does, which is the other half of the same statement.</p>
+  <p>The <code>auto refresh</code> column is the default configuration, which re-anchors on a from-scratch recomputation once per <code>window</code> ticks (&sect;12.2). One O(<i>w</i>) recompute per <i>w</i> ticks is O(1) amortised, and it shows up as a flat surcharge that also does not grow with the window.</p>
+</section>
+
+<section id="ch11-3">
+  <h3><span class="sec-no">11.3</span> The crossover, and who actually wins</h3>
+  <p>Against the numpy reference the comparison is lopsided and not very interesting; both are interpreted, and only one of them re-reads the window. The real opponent is <code>iisignature</code>, which is compiled C, and there the honest answer is that streaming does not always win.</p>
+  <p>Depth 2: recomputing in C is faster out to window 600 (125 &micro;s against streaming's 132) and loses by window 1,200 (231 against 135). Depth 3, where each recompute does more work: the crossover falls between 300 and 600 &mdash; at 300 <code>iisignature</code> wins 173 to 194, at 600 it loses 326 to 197. Against RoughPy, the library's default backend, streaming wins at every window measured, from 1.7&times; at window 10 to 129&times; at window 1,200.</p>
+  <p>Below the crossover, recomputing the whole window in C beats updating it in Python, asymptotics notwithstanding. This is not a defect to be apologised for; it is what the numbers say, and it is exactly the kind of claim that gets checked in an interview. What it changes is the advice:</p>
+  <div class="note"><b>Which method to use.</b> <code>method="auto"</code> chooses streaming whenever it can reproduce the configuration, and against the library's default RoughPy backend that is right at essentially every window. If you have <code>iisignature</code> installed <i>and</i> short windows, <code>method="batch"</code> is faster &mdash; the crossover above is where to draw the line. The two agree to floating-point noise either way, so this is purely a speed decision.</div>
+  <p>The other thing the table shows is where the ceiling is. The streaming update is dozens of small numpy calls, each with a fixed interpreter overhead of a microsecond or two, and that overhead is essentially the entire cost. A compiled implementation of the same identity would move the crossover to a very small window. That is a natural next step and it is deliberately not taken here: the point of this module is that the algebra is legible, and <code>sigtrade</code>'s stated non-goal is reimplementing low-level signature computation.</p>
+</section>
+
+<section id="ch11-4">
+  <h3><span class="sec-no">11.4</span> A retraction: &sect;9.1's nested-window plan</h3>
+  <p>Part II closed by handing v0.3 a concrete target. Each ORVP segment needs signatures over its last 600, 300 and 150 seconds; the 150-point path is a suffix of the 300-point path, which is a suffix of the 600-point one, so the naive route walks 1,050 points where 600 exist. &sect;9.1 proposed recovering the suffixes by left-multiplying the full window's signature by the inverse of the departing prefix.</p>
+  <div class="bug">
+    <span class="bug-label">retracted &mdash; correct identity, wrong algorithm</span>
+    <p>That works and it saves nothing. Getting <i>S</i>(300) as <i>S</i>(prefix)<sup>&minus;1</sup> &sdot; <i>S</i>(600) requires <i>S</i>(600) <i>and</i> <i>S</i>(prefix) &mdash; 600 points plus 300 points &mdash; and then <i>S</i>(150) needs the next prefix too. The total is the same 1,050 points the naive route walks, plus two inversions.</p>
+    <p>The saving comes from a different decomposition. Cut the longest window into <i>disjoint</i> chunks at the shorter windows' boundaries and combine them right-to-left with Chen's identity: 150 points, then 150 more, then 300 more &mdash; 600 in total, each point read once, and no inverse anywhere.</p>
+  </div>
+  <p>So the group inverse is the wrong tool for a nested family, and the reason is worth stating because it says where it <i>is</i> the right tool. A nested family can be re-decomposed &mdash; the windows share a fixed suffix and you get to choose the cut points. A sliding window cannot: it changes at both ends every tick, so there is no static decomposition to exploit and cancelling the departing end is the only route.</p>
+  <p><code>nested_suffix_signatures</code> implements the chunked version, including the wrinkle that makes it non-trivial: <code>time_augment</code> normalises its channel per window, so a 150-point window's time channel runs at a different rate than the same stretch seen inside a 600-point one. The two differ by a dilation of one channel, and scaling a path channel acts on the signature diagonally &mdash; the coefficient of a word picks up the scale factor once per occurrence of that letter. So the fix-up is <code>algebra.dilate</code>, not a recomputation.</p>
+  <p>And then the measurement, which is where the second half of the retraction lives:</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>route for 600/300/150</th><th>ms per segment</th></tr></thead>
+      <tbody>
+        <tr><td>naive &mdash; three independent signatures (numpy)</td><td>76.74</td></tr>
+        <tr><td>Chen &mdash; disjoint chunks combined (numpy)</td><td>46.43</td></tr>
+        <tr><td>naive &mdash; three independent signatures (iisignature)</td><td>0.58</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="caption">Depth 3, 200 synthetic segments, agreeing to 3e-15 across all three routes.</div>
+  <p>The chunked route does save what the point count says it should: 46.4 ms per segment against the naive numpy route's 76.7, a 1.65&times; improvement where 1,050/600 = 1.75&times; is the ceiling, the gap being the extra tensor multiplications that stitch the chunks together. And then the number that settles it &mdash; calling <code>iisignature</code> three times does the whole job in 0.58 ms, eighty times faster than either numpy route. For ORVP's feature build the correct answer is to call the compiled backend three times and not be clever. The chunked route is worth having when the backend is the numpy one, and would be worth having again if the algebra were ever compiled; neither is where this benchmark sits, and saying so is cheaper than discovering it later.</p>
+</section>
+</div>
+
+<div class="chapter" id="ch12">
+<div class="chapter-head">
+  <span class="eyebrow">Chapter 12</span>
+  <h2 class="chapter-title">Drift</h2>
+</div>
+
+<section id="ch12-1">
+  <h3><span class="sec-no">12.1</span> What accumulates, and along which axis</h3>
+  <p>&sect;9.1 flagged this before any of the code existed: repeated multiplication by group inverses compounds floating-point error in a way recomputation does not, and the higher levels are where the coefficients are smallest. That guess was right about the mechanism and understated the size of it.</p>
+  <p>Measured as an infinity-norm ratio against a from-scratch signature of the same window &mdash; absolute error alone is meaningless here, since a path with large total variation has a large signature and both grow together:</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>depth</th><th>re-anchoring</th><th>relative drift</th><th>worst level</th></tr></thead>
+      <tbody>
+        <tr><td>2</td><td>never</td><td>8.3e-16</td><td>1.7e-15 (level 2)</td></tr>
+        <tr><td>3</td><td>never</td><td>5.4e-13</td><td>3.2e-12 (level 3)</td></tr>
+        <tr><td>4</td><td>never</td><td>4.2e-11</td><td>1.0e-09 (level 4)</td></tr>
+        <tr><td>5</td><td>never</td><td>1.7e-09</td><td>2.0e-07 (level 5)</td></tr>
+        <tr><td>2</td><td>every 250</td><td>6.8e-17</td><td>1.4e-16 (level 2)</td></tr>
+        <tr><td>3</td><td>every 250</td><td>6.9e-15</td><td>4.1e-14 (level 3)</td></tr>
+        <tr><td>4</td><td>every 250</td><td>6.9e-15</td><td>1.5e-13 (level 4)</td></tr>
+        <tr><td>5</td><td>every 250</td><td>6.9e-15</td><td>3.6e-13 (level 5)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="caption">Window 250, 20,000 ticks, worst case over checkpointed comparisons against a from-scratch signature.</div>
+  <p>Two things stand out. Depth is the axis that matters: three orders of magnitude of drift for every extra level, from machine precision at depth 2 to 10<sup>&minus;9</sup> at depth 5. And the growth in <i>time</i> is quadratic, not the square root a random walk of rounding errors would give &mdash; doubling the number of unanchored ticks multiplies the drift by about four, consistently, from 4.4&times;10<sup>&minus;13</sup> at 2,500 ticks to 1.7&times;10<sup>&minus;10</sup> at 40,000. Drift is therefore not something a long-running stream grows out of.</p>
+  <p>The axis that matters is <b>depth</b>, and steeply. That is mechanical rather than mysterious: level <i>k</i> of a product is a sum over all the ways to split <i>k</i>, so its rounding error is fed by every level beneath it, and it is simultaneously the level whose own coordinates are smallest. Error flows upward and the denominator shrinks.</p>
+  <p>The path's own scale is a second-order effect by comparison, and not even a monotone one. Sweeping the increment standard deviation over four orders of magnitude &mdash; 10<sup>&minus;4</sup> to 1 &mdash; moves the depth-4 drift between 4&times;10<sup>&minus;11</sup> and 1&times;10<sup>&minus;9</sup> and then back down to 6&times;10<sup>&minus;12</sup> at the largest scale, because once the price channel dominates the augmented time channel the signature's own magnitude grows faster than the error does and the ratio improves. Two orders of magnitude of variation, against seven for depth. The conditioning story is about the algebra, not about the data.</p>
+</section>
+
+<section id="ch12-2">
+  <h3><span class="sec-no">12.2</span> Re-anchoring, for free</h3>
+  <p>The fix is the obvious one and the accounting is what makes it worth doing. Every <i>w</i> ticks, throw the accumulated element away and recompute the window from scratch. One O(<i>w</i>) recomputation per <i>w</i> ticks is O(1) amortised &mdash; the asymptotic claim survives intact &mdash; and no error can survive longer than one window's worth of updates.</p>
+  <p>Measured, that is a 23&ndash;37% surcharge per tick, flat in the window (the <code>+ auto refresh</code> column in &sect;11.2), and it takes the drift to 7&times;10<sup>&minus;15</sup> at <i>every</i> depth from 2 to 5 &mdash; four orders of magnitude better at depth 4, six at depth 5. The residual is the recomputation's own rounding, which is the floor any implementation has.</p>
+  <p>That is why <code>refresh_every="auto"</code> is the default rather than an option for the cautious. A library whose headline feature silently degrades at high depth over a long stream would be a bad library; one that costs a measured surcharge and stays at machine precision is a usable one. <code>refresh_every=None</code> exists so the benchmark can measure the drift in the raw, and is the wrong choice for anything else.</p>
+</section>
+
+<section id="ch12-3">
+  <h3><span class="sec-no">12.3</span> Where v0.3 stands</h3>
+  <p>Shipped: <code>sigtrade.algebra</code>, the truncated tensor algebra as an object you can call &mdash; multiply, inverse, exp, log, dilate &mdash; with the group laws as property-based tests rather than comments; and <code>sigtrade.streaming</code>, which turns it into <code>StreamingSignature</code>, <code>rolling_signature</code>, <code>suffix_signature</code> and <code>nested_suffix_signatures</code>. <code>SignatureTransformer</code> gained <code>method</code>, and streaming is now its default for plain signature output, which means the v0.1 test suite has been re-running the v0.3 code path from the moment it was wired in.</p>
+  <p>Not shipped, and not oversights: streaming log-signatures (&sect;10.4), streaming with a basepoint (&sect;10.4), and a compiled implementation (&sect;11.3).</p>
+  <p>The claim v0.3 supports, stated as narrowly as it deserves: the group structure of the tensor algebra makes a rolling signature cost O(1) per tick instead of O(window), this is measured rather than asserted, the numerical price is quantified and bounded, and one prediction the project made about itself in v0.2 turned out to be wrong and has been retracted rather than quietly dropped.</p>
+</section>
+</div>
+
+<footer>
+  <span>Part III of the sigtrade working notes. Part I &mdash; the algebra, and building the v0.1 transformer &mdash; is <code>docs/notes.html</code>, chapters 1&ndash;5; Part II &mdash; the Optiver benchmark &mdash; is <code>docs/notes-orvp.html</code>, chapters 6&ndash;9.</span>
+  <span>Generated from live Python sessions (Python 3.14.6, NixOS). Benchmark code and reproduction instructions: <code>benchmarks/streaming/</code>.</span>
+</footer>
+
+</div>

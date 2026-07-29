@@ -110,7 +110,10 @@ published top-solution baselines to reproduce and compare against.
       0.24362 against the HAR-RV set's 0.24075. Caveat stated alongside it:
       the signature arm saw only the WAP path, while the winning baseline
       saw order-book state, so this bounds *price-path* signatures, not
-      signatures as such.
+      signatures as such. **Both points were revisited in v0.2.1**: the
+      caveat was tested and did not change the conclusion, and these
+      figures are seed-0-only — the three-subset mean is −0.99%, not
+      −0.17%, so the numbers above understate the negative result.
 - [x] Truncation-depth × window-length study on this task (features grow
       exponentially in depth; find where held-out performance turns over).
       This replaces the old standalone v0.2 — it's better as part of a real
@@ -127,15 +130,78 @@ published top-solution baselines to reproduce and compare against.
       — it needs the repo public and, for the `pip install` line to work
       for anyone else, ideally the deferred PyPI release.
 
+## v0.2.1 — closing the input-set confound, and replication (done)
+
+v0.2's negative result had one honest objection outstanding: the signature
+arm saw only the WAP path while the baseline it lost to saw order-book
+state, so it was an input-set comparison rather than a feature-family one.
+This closes that, and adds the replication v0.2 lacked.
+
+- [x] Multichannel arm: depth-2 log-signatures of the joint (log-WAP,
+      relative spread, depth imbalance) path over the same 600/300/150 s
+      causal suffix windows, through the same pipeline, learner, GroupKFold
+      splits and grouped bootstrap. Spread and imbalance come from the same
+      functions the `book` arm uses, so the two arms demonstrably read the
+      same quantities. Arms: `multisig`, `multisig+har`, `multisig+book`,
+      `multisig+book+har` (`benchmarks/orvp/features.py`).
+- [x] Replication across three pre-registered 20-stock subsets (seeds 0/1/2,
+      fixed before any arm was scored), with a stop rule stated in advance:
+      a win requires improvement at p < 0.05 on *every* subset
+      (`benchmarks/orvp/multiseed.py`).
+- [x] **Result: the confound was real and was not the explanation.**
+      `multisig` beats `sig` on all three subsets (+0.70%, +0.08%, +1.78%),
+      so the extra channels genuinely help — but `multisig+book+har` is
+      still worse than `book+har` on all three (−0.08%, −1.32%, −0.15%;
+      mean −0.52%), significant on 0 of 3. The stop rule fires.
+- [x] **ORVP is closed.** No further feature engineering on this dataset:
+      two independent attempts have now failed to beat aggregates of the
+      same data, and a third variation would be searching for a subset
+      where the number comes out right rather than testing a hypothesis.
+- [x] Replication also revised v0.2's own numbers. Seed 0 — the subset v0.2
+      reported — is the most favourable of the three; `sig+book+har` vs
+      `book+har` is −0.17% there against a −0.99% mean. The README now
+      leads with the three-subset table.
+
 ## v0.3 — streaming engine (Sept–Oct, interview-season depth)
 
-- [ ] Sliding-window signature updates via Chen's identity + group inverse
+- [x] Sliding-window signature updates via Chen's identity + group inverse
       of the departing segment. O(1) amortized per tick vs O(window)
-      recompute. Benchmark the speedup honestly (there's a numerical-
-      stability story here too — repeated group operations at high depth —
-      investigate and document it).
-- [ ] This is the "what did you actually do, mathematically?" answer: the
+      recompute. `sigtrade.algebra` (the truncated tensor algebra as an
+      object: multiply, inverse, exp, log, dilate) and `sigtrade.streaming`
+      (`StreamingSignature`, `rolling_signature`, `suffix_signature`,
+      `nested_suffix_signatures`), wired into `SignatureTransformer` as
+      `method="auto"|"batch"|"streaming"` — streaming is now the default for
+      `output="signature"`.
+- [x] Benchmark the speedup honestly — `benchmarks/streaming/`. **O(1) is
+      confirmed**: per-tick cost is flat from window 10 to window 1200, so
+      the win over recomputation grows without bound (452× against the
+      numpy reference and 129× against RoughPy at window 1200). **The honest
+      qualification**: the update is interpreted Python, so against
+      `iisignature`'s compiled recompute it only wins past a crossover
+      window — between 600 and 1200 at depth 2, between 300 and 600 at
+      depth 3. Below that, batch is faster despite being asymptotically
+      worse, and the README says so.
+- [x] Numerical-stability story, investigated rather than assumed. Drift
+      from repeated group operations is real and grows steeply in depth
+      (~1e-15 at depth 2, ~1e-9 at depth 5 over 20,000 unanchored ticks,
+      concentrated in the top level) and *quadratically* in tick count —
+      about ×4 per doubling, so a long stream does not grow out of it.
+      Re-anchoring on a from-scratch recomputation once per `window` ticks
+      pins it near machine precision and is still O(1) amortized, so it is
+      the default (`refresh_every="auto"`).
+- [x] Retracted a claim v0.2 made about v0.3: `docs/notes-orvp.html` §9.1
+      proposed removing the nested 600/300/150-window redundancy with group
+      inverses. Measured, that route is *slower* than the naive one — the
+      right decomposition for nested windows is disjoint chunks combined
+      forwards (no inverse), and even that loses to just calling
+      `iisignature` three times. Group inverses earn their keep on sliding
+      windows, where the shared part cannot be re-decomposed, and not here.
+      `nested_suffix_signatures` implements the chunked route; §11.3 of the
+      notes states the retraction.
+- [x] This is the "what did you actually do, mathematically?" answer: the
       group structure of the tensor algebra doing load-bearing work.
+      `tests/test_algebra.py` pins it as a group (two-sided inverse, the
+      antipode formula, inverse = signature of the reversed path).
 
 ## v0.4 — the honest secondary study: daily multi-asset trend
 
