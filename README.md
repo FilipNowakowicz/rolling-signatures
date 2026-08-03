@@ -35,7 +35,7 @@ cd rolling-signatures
 pip install -e ".[test]"
 ```
 
-Python 3.10+. `RoughPy` is the default backend and installs as a dependency;
+Python 3.11+. `RoughPy` is the default backend and installs as a dependency;
 `iisignature` is an optional extra (`pip install "rollsig[iisignature]"`) and
 is roughly two orders of magnitude faster for log-signatures at the sizes this
 library is aimed at.
@@ -349,7 +349,7 @@ shared part cannot be re-decomposed, and not here. Full study:
 | Path | What it holds |
 | --- | --- |
 | `src/rollsig/` | The library: `transformer.py` (the sklearn estimator), `preprocessing.py` (basepoint, time augmentation, lead-lag, rescaling), `algebra.py` (the truncated tensor algebra), `streaming.py` (the rolling engine), `_backend.py` (the narrow RoughPy / `iisignature` / numpy interface). |
-| `tests/` | Tests and linting run in CI on Python 3.10, 3.11, and 3.12. The correctness oracles are mathematical: Chen's identity, the shuffle identity, primitivity in the free Lie algebra, invariance under time reparametrization, the group laws, and agreement between the backends. |
+| `tests/` | Tests and linting run in CI on Python 3.11 and 3.12. The correctness oracles are mathematical: Chen's identity, the shuffle identity, primitivity in the free Lie algebra, invariance under time reparametrization, the group laws, and agreement between the backends. |
 | `CONTRIBUTING.md` | Local checks, package layout, and benchmark/result-integrity rules. |
 | `benchmarks/orvp/` | The realized-volatility study — data pipeline, arms, grouped CV, bootstrap, three-subset replication. Committed results in `results/`. |
 | `benchmarks/streaming/` | The streaming study — per-tick timings, the drift measurement, the nested-window retraction. Committed results in `results/`. |
