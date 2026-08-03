@@ -33,23 +33,22 @@ Method = Literal["auto", "batch", "streaming"]
 # always streams. Against compiled `iisignature` there is a real crossover,
 # because the update is interpreted Python while the recompute is one C call.
 #
-# Two deliberate conservatisms, both favouring the compiled batch route:
-# the entries are the first window at which streaming was measured to *win*
-# rather than an interpolated midpoint, and depths outside the measured 2-3
-# range reuse the nearest measured depth instead of extrapolating the trend
-# (which points downwards, so the extrapolation would switch to streaming
-# sooner). The measurement is at four preprocessed channels, the ORVP
-# configuration; wider paths raise the streaming constant faster than the
-# batch one, so on those, pass `method` explicitly rather than trusting `auto`.
+# The thresholds apply only to the measured configuration: four transformed
+# channels (the ORVP-style path) at depths 2 and 3. They are deliberately not
+# extrapolated to another dimension or depth. On an unmeasured iisignature
+# configuration, ``auto`` uses the conservative compiled batch route; callers
+# can still request ``method="streaming"`` explicitly.
 _STREAMING_WINS_ABOVE: dict[str, dict[int, int]] = {"iisignature": {2: 1200, 3: 600}}
 
 
-def _streaming_threshold(backend: Backend, depth: int) -> int:
-    """Smallest window for which `method='auto'` prefers streaming."""
+def _streaming_threshold(backend: Backend, depth: int, transformed_dim: int) -> int | None:
+    """Measured streaming threshold, or ``None`` when no measurement applies."""
     by_depth = _STREAMING_WINS_ABOVE.get(backend)
     if by_depth is None:
         return 1
-    return by_depth[min(max(depth, min(by_depth)), max(by_depth))]
+    if transformed_dim != 4:
+        return None
+    return by_depth.get(depth)
 
 
 class SignatureTransformer(BaseEstimator, TransformerMixin):
@@ -62,8 +61,10 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
 
     `method` selects how those rows get computed -- see `_select_method` and
     `rollsig.streaming`. The two routes agree to floating-point noise; which
-    one is faster depends on the window length, the depth and the backend, so
-    `method="auto"` follows the crossover `benchmarks/streaming/` measured.
+    one is faster depends on the window length, transformed dimension, depth,
+    backend, and environment. `method="auto"` follows the crossover measured
+    in `benchmarks/streaming/`; it is a benchmark-derived heuristic, not a
+    universal performance guarantee.
     `method="batch"` and `method="streaming"` are authoritative and are never
     overridden by that rule.
 
@@ -97,11 +98,11 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         X = check_array(X)
         self._validate_parameters()
-        self.method_ = self._select_method()
         self.n_features_in_ = X.shape[1]
         transformed_dim = self.n_features_in_ + int(self.time_augmentation)
         if self.lead_lag_transform:
             transformed_dim *= 2
+        self.method_ = self._select_method(transformed_dim)
         if self.output == "log_signature":
             self.n_output_features_ = n_log_features(transformed_dim, self.depth)
         else:
@@ -154,7 +155,7 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
         )
         return engine.extend(X)
 
-    def _select_method(self) -> str:
+    def _select_method(self, transformed_dim: int) -> str:
         """Resolve `method` to the route `transform` will take.
 
         Deterministic: a function of the constructor arguments alone, with no
@@ -170,7 +171,8 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
             return "batch"
         if self.method != "auto":
             return self.method
-        return "streaming" if self.window >= _streaming_threshold(self.backend, self.depth) else "batch"
+        threshold = _streaming_threshold(self.backend, self.depth, transformed_dim)
+        return "streaming" if threshold is not None and self.window >= threshold else "batch"
 
     def _streaming_eligible(self) -> bool:
         """Whether the streaming engine supports this configuration.

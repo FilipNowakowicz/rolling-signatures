@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
 
@@ -31,6 +31,9 @@ jobs:
         run: |
           pip install setuptools numpy
           pip install --no-build-isolation iisignature
+
+      - name: Lint
+        run: ruff check .
 
       - name: Run tests
         run: pytest -q

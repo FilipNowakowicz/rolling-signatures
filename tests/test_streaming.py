@@ -227,30 +227,28 @@ def test_transformer_defaults_to_streaming_and_agrees_with_batch(series):
 
 
 @pytest.mark.parametrize(
-    "backend, window, depth, expected",
+    "backend, window, depth, options, expected",
     [
         # RoughPy and numpy: streaming won at every window measured, so `auto`
         # streams everywhere, including at windows far below any crossover.
-        ("roughpy", 2, 2, "streaming"),
-        ("roughpy", 10, 3, "streaming"),
-        ("numpy", 10, 3, "streaming"),
-        ("numpy", 5000, 2, "streaming"),
+        ("roughpy", 2, 2, {}, "streaming"),
+        ("roughpy", 10, 3, {}, "streaming"),
+        ("numpy", 10, 3, {}, "streaming"),
+        ("numpy", 5000, 2, {}, "streaming"),
         # iisignature: compiled recompute wins below the measured crossover.
-        ("iisignature", 20, 2, "batch"),
-        ("iisignature", 1199, 2, "batch"),
-        ("iisignature", 1200, 2, "streaming"),
-        ("iisignature", 5000, 2, "streaming"),
-        ("iisignature", 599, 3, "batch"),
-        ("iisignature", 600, 3, "streaming"),
-        # Depths outside the measured 2-3 range reuse the nearest measured
-        # depth rather than extrapolating the trend.
-        ("iisignature", 600, 1, "batch"),
-        ("iisignature", 1200, 1, "streaming"),
-        ("iisignature", 599, 5, "batch"),
-        ("iisignature", 600, 5, "streaming"),
+        ("iisignature", 20, 2, {"lead_lag_transform": True}, "batch"),
+        ("iisignature", 1199, 2, {"lead_lag_transform": True}, "batch"),
+        ("iisignature", 1200, 2, {"lead_lag_transform": True}, "streaming"),
+        ("iisignature", 5000, 2, {"lead_lag_transform": True}, "streaming"),
+        ("iisignature", 599, 3, {"lead_lag_transform": True}, "batch"),
+        ("iisignature", 600, 3, {"lead_lag_transform": True}, "streaming"),
+        # Unmeasured dimensions and depths use the conservative batch route.
+        ("iisignature", 5000, 2, {}, "batch"),
+        ("iisignature", 5000, 1, {"lead_lag_transform": True}, "batch"),
+        ("iisignature", 5000, 5, {"lead_lag_transform": True}, "batch"),
     ],
 )
-def test_auto_follows_the_measured_crossover(series, backend, window, depth, expected):
+def test_auto_follows_the_measured_crossover(series, backend, window, depth, options, expected):
     """`method="auto"` is a speed decision, so it has to follow the speed data.
 
     Before v0.3's polish pass `auto` streamed whenever streaming *could*
@@ -258,7 +256,7 @@ def test_auto_follows_the_measured_crossover(series, backend, window, depth, exp
     it: `iisignature` recomputes in C, and below the crossover window measured
     in `benchmarks/streaming/` that is the faster route.
     """
-    estimator = SignatureTransformer(window=window, depth=depth, backend=backend).fit(series)
+    estimator = SignatureTransformer(window=window, depth=depth, backend=backend, **options).fit(series)
     assert estimator.method_ == expected
 
 
@@ -292,6 +290,11 @@ def test_explicit_method_overrides_the_crossover(series):
     assert long.method_ == "batch"
 
 
+def test_explicit_streaming_overrides_unmeasured_iisignature_configuration(series):
+    estimator = SignatureTransformer(window=20, depth=5, backend="iisignature", method="streaming").fit(series)
+    assert estimator.method_ == "streaming"
+
+
 def test_auto_selection_is_deterministic_and_data_independent(series):
     """No timing at fit time: the route is a function of the parameters alone."""
     for backend in ("roughpy", "iisignature"):
@@ -301,6 +304,17 @@ def test_auto_selection_is_deterministic_and_data_independent(series):
                 for data in (series, series[:10], series[:40] * 1e6)
             }
             assert len(chosen) == 1, f"{backend} window={window} resolved to {chosen}"
+
+
+def test_auto_selection_uses_transformed_dimension_not_row_count_or_values(series):
+    options = {"backend": "iisignature", "window": 1200, "depth": 2, "lead_lag_transform": True}
+    assert {
+        SignatureTransformer(**options).fit(data).method_
+        for data in (series, series[:10], series[:40] * 1e6)
+    } == {"streaming"}
+    # The same measured depth/window with a different transformed dimension is
+    # unmeasured and therefore conservatively batched.
+    assert SignatureTransformer(backend="iisignature", window=1200, depth=2).fit(series).method_ == "batch"
 
 
 def test_auto_batch_route_still_agrees_with_streaming(series):

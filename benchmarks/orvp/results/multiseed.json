@@ -183,7 +183,7 @@
         ],
         "mean_improvement_pct": 31.57081783494382,
         "seeds_improved": 3,
-        "seeds_significant": 3,
+        "seeds_below_no_improvement_threshold": 3,
         "n_seeds": 3,
         "consistent": true
       },
@@ -196,7 +196,7 @@
         ],
         "mean_improvement_pct": -3.5199195666505836,
         "seeds_improved": 0,
-        "seeds_significant": 0,
+        "seeds_below_no_improvement_threshold": 0,
         "n_seeds": 3,
         "consistent": false
       },
@@ -209,7 +209,7 @@
         ],
         "mean_improvement_pct": -1.474269663247399,
         "seeds_improved": 1,
-        "seeds_significant": 1,
+        "seeds_below_no_improvement_threshold": 1,
         "n_seeds": 3,
         "consistent": false
       },
@@ -222,7 +222,7 @@
         ],
         "mean_improvement_pct": -1.823669583420134,
         "seeds_improved": 0,
-        "seeds_significant": 0,
+        "seeds_below_no_improvement_threshold": 0,
         "n_seeds": 3,
         "consistent": false
       },
@@ -235,7 +235,7 @@
         ],
         "mean_improvement_pct": -0.9921410124358614,
         "seeds_improved": 0,
-        "seeds_significant": 0,
+        "seeds_below_no_improvement_threshold": 0,
         "n_seeds": 3,
         "consistent": false
       },
@@ -248,7 +248,7 @@
         ],
         "mean_improvement_pct": -2.636577736813688,
         "seeds_improved": 0,
-        "seeds_significant": 0,
+        "seeds_below_no_improvement_threshold": 0,
         "n_seeds": 3,
         "consistent": false
       },
@@ -261,7 +261,7 @@
         ],
         "mean_improvement_pct": -1.0561044780033175,
         "seeds_improved": 1,
-        "seeds_significant": 1,
+        "seeds_below_no_improvement_threshold": 1,
         "n_seeds": 3,
         "consistent": false
       },
@@ -274,7 +274,7 @@
         ],
         "mean_improvement_pct": -0.7815377288199725,
         "seeds_improved": 0,
-        "seeds_significant": 0,
+        "seeds_below_no_improvement_threshold": 0,
         "n_seeds": 3,
         "consistent": false
       },
@@ -287,7 +287,7 @@
         ],
         "mean_improvement_pct": -0.5156185456207069,
         "seeds_improved": 0,
-        "seeds_significant": 0,
+        "seeds_below_no_improvement_threshold": 0,
         "n_seeds": 3,
         "consistent": false
       },
@@ -300,7 +300,7 @@
         ],
         "mean_improvement_pct": 0.8541762260553359,
         "seeds_improved": 3,
-        "seeds_significant": 1,
+        "seeds_below_no_improvement_threshold": 1,
         "n_seeds": 3,
         "consistent": false
       },
@@ -313,7 +313,7 @@
         ],
         "mean_improvement_pct": 0.4708293497030957,
         "seeds_improved": 3,
-        "seeds_significant": 0,
+        "seeds_below_no_improvement_threshold": 0,
         "n_seeds": 3,
         "consistent": false
       }
@@ -327,11 +327,11 @@
       ],
       "mean_improvement_pct": -0.5156185456207069,
       "seeds_improved": 0,
-      "seeds_significant": 0,
+      "seeds_below_no_improvement_threshold": 0,
       "n_seeds": 3,
       "consistent": false
     },
-    "verdict": "multichannel signatures do not consistently improve book+har (0/3 seeds significant, mean -0.52%) -- stop the ORVP search"
+    "verdict": "multichannel signatures do not consistently improve book+har (0/3 seeds with p_no_improvement < 0.05, mean -0.52%) -- stop the ORVP search"
   },
   "per_seed": {
     "0": {

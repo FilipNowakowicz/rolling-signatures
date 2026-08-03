@@ -41,7 +41,7 @@ and the ORVP search should stop.
 """
 
 CONSISTENCY_ALPHA = 0.05
-"""A seed counts as a win only if the grouped bootstrap clears this."""
+"""A seed counts as a win when p_no_improvement is below this threshold."""
 
 
 def run_seeds(
@@ -124,7 +124,7 @@ def summarise(per_seed: dict, arms: list[str]) -> dict:
                 "per_seed_improvement_pct": improvements,
                 "mean_improvement_pct": float(np.mean(improvements)),
                 "seeds_improved": int(sum(i > 0 for i in improvements)),
-                "seeds_significant": int(sum(wins)),
+                "seeds_below_no_improvement_threshold": int(sum(wins)),
                 "n_seeds": len(entries),
                 # "Consistent" means every seed, not most of them. A feature
                 # family that helps on two subsets out of three has not
@@ -153,8 +153,10 @@ def _verdict(headline: dict | None) -> str:
         )
     return (
         f"multichannel signatures do not consistently improve "
-        f"{HEADLINE.split(' vs ')[1]} ({headline['seeds_significant']}/{headline['n_seeds']} "
-        f"seeds significant, mean {headline['mean_improvement_pct']:+.2f}%) -- stop the ORVP search"
+        f"{HEADLINE.split(' vs ')[1]} ("
+        f"{headline['seeds_below_no_improvement_threshold']}/{headline['n_seeds']} seeds with "
+        f"p_no_improvement < {CONSISTENCY_ALPHA:.2f}, mean "
+        f"{headline['mean_improvement_pct']:+.2f}%) -- stop the ORVP search"
     )
 
 
@@ -170,14 +172,14 @@ def markdown_table(summary: dict, seeds: tuple[int, ...]) -> str:
 
     lines += [
         "",
-        f"| Comparison | {seed_columns} | Mean | Seeds significant |",
+        f"| Comparison | {seed_columns} | Mean | Seeds with p_no_improvement < {CONSISTENCY_ALPHA:.2f} |",
         "| --- |" + " ---: |" * (len(seeds) + 2),
     ]
     for row in summary["comparisons"]:
         deltas = " | ".join(f"{v:+.2f}%" for v in row["per_seed_improvement_pct"])
         lines.append(
             f"| {row['comparison']} | {deltas} | {row['mean_improvement_pct']:+.2f}% | "
-            f"{row['seeds_significant']}/{row['n_seeds']} |"
+            f"{row['seeds_below_no_improvement_threshold']}/{row['n_seeds']} |"
         )
     lines += ["", f"**Verdict:** {summary['verdict']}."]
     return "\n".join(lines)

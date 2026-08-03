@@ -6,6 +6,8 @@ __pycache__/
 build/
 dist/
 .hypothesis/
+# Optional local-only maintenance notes. Never commit personal instructions.
+CLAUDE.local.md
 # ORVP competition data and derived feature caches -- gigabytes, and the
 # competition's terms cover redistribution. `benchmarks/orvp/results/` is
 # deliberately NOT ignored: the numbers are the deliverable.

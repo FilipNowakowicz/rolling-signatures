@@ -13,7 +13,7 @@
 | multisig+book | 145 | 0.23250 | 0.27317 | 0.27218 | 0.25929 |
 | multisig+book+har | 171 | 0.23112 | 0.27478 | 0.27259 | 0.25950 |
 
-| Comparison | seed 0 | seed 1 | seed 2 | Mean | Seeds significant |
+| Comparison | seed 0 | seed 1 | seed 2 | Mean | Seeds with p_no_improvement < 0.05 |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | book+har vs naive | +31.03% | +32.45% | +31.23% | +31.57% | 3/3 |
 | sig vs har | -1.19% | -5.17% | -4.21% | -3.52% | 0/3 |
@@ -27,4 +27,4 @@
 | multisig vs sig | +0.70% | +0.08% | +1.78% | +0.85% | 1/3 |
 | multisig+book+har vs sig+book+har | +0.09% | +0.45% | +0.87% | +0.47% | 0/3 |
 
-**Verdict:** multichannel signatures do not consistently improve book+har (0/3 seeds significant, mean -0.52%) -- stop the ORVP search.
+**Verdict:** multichannel signatures do not consistently improve book+har (0/3 seeds with p_no_improvement < 0.05, mean -0.52%) -- stop the ORVP search.

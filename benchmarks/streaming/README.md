@@ -92,14 +92,18 @@ interpreter overhead is essentially its entire cost. The crossover:
 | 2 | window 600 (125 µs vs 132) | window 1200 (231 µs vs 135) |
 | 3 | window 300 (173 µs vs 194) | window 600 (326 µs vs 197) |
 
-`method="auto"` implements exactly that table: with `backend="iisignature"` it
-recomputes below the measured crossover window (1200 at depth 2, 600 at depth
-3) and streams at or above it; against RoughPy and numpy it streams
-everywhere. The `crossover_window` entry in `results/streaming.json` is the
-source of those constants, and `tests/test_streaming.py` pins the two together
-so the code cannot drift from the measurement. The two routes agree to
-floating-point noise either way, so it is purely a speed decision, and an
-explicit `method="batch"` or `method="streaming"` overrides it.
+`method="auto"` uses this table only for the measured ORVP-style
+configuration: four transformed channels at depth 2 or 3. With
+`backend="iisignature"` it recomputes below the measured crossover window
+(1200 at depth 2, 600 at depth 3) and streams at or above it; an unmeasured
+dimension or depth conservatively uses batch. Against RoughPy and numpy it
+streams everywhere because it won at every measured window. These are
+benchmark-derived choices from the committed environment, not
+hardware-independent guarantees. The `crossover_window` entry in
+`results/streaming.json` is the source of the iisignature constants, and
+`tests/test_streaming.py` pins the two together. The two routes agree to
+floating-point noise either way, and an explicit `method="batch"` or
+`method="streaming"` overrides the heuristic.
 
 A compiled implementation of the same identity would move the crossover to a
 very small window. That is deliberately not done here — `rollsig`'s stated

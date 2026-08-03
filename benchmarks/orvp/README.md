@@ -125,9 +125,11 @@ One 20-stock subset cannot distinguish "this feature family helps" from
 bootstrap cannot either — it resamples `time_id`s, so it prices in
 market-instant variation with the universe held fixed. `multiseed` reruns
 everything on three subsets drawn from fixed seeds (0, 1, 2), chosen before
-any arm was scored. A comparison counts as a win only if it improves with
-p(no improvement) < 0.05 on **every** seed; two out of three is not
-consistency.
+any arm was scored. Here `p_no_improvement` is the fraction of grouped-
+bootstrap resamples whose improvement is non-positive; it is not presented as
+a conventional hypothesis-test p-value. A comparison counts as a win only if
+its improvement is positive and `p_no_improvement < 0.05` under the grouped
+bootstrap on **every** seed; two out of three is not consistency.
 
 ## Design decisions worth knowing about
 
@@ -163,7 +165,7 @@ Three pre-registered subsets, all eleven arms, one shared learner. Full
 tables in `results/multiseed_table.md`; the per-seed bootstrap intervals are
 in `results/multiseed.json`.
 
-| Comparison | seed 0 | seed 1 | seed 2 | Mean | Seeds significant |
+| Comparison | seed 0 | seed 1 | seed 2 | Mean | Seeds with `p_no_improvement < 0.05` |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | `book+har` vs `naive` | +31.03% | +32.45% | +31.23% | +31.57% | 3/3 |
 | `sig+book+har` vs `book+har` | −0.17% | −1.78% | −1.02% | −0.99% | 0/3 |
@@ -174,9 +176,9 @@ in `results/multiseed.json`.
 **The multichannel arm beats the price-only arm on every subset and still
 loses to the aggregates on every subset.** The v0.2 confound was real —
 giving signatures the order-book state does help them — and it was not the
-explanation. The headline comparison is negative on all three seeds and
-significant on none, so the pre-registered stop rule fires: **the ORVP
-search is closed.**
+explanation. The headline comparison is negative on all three seeds and has
+`p_no_improvement < 0.05` on none, so the pre-registered stop rule fires:
+**the ORVP search is closed.**
 
 Two things the replication caught that a single run would not have:
 

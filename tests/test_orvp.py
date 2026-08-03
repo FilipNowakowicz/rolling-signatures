@@ -563,13 +563,13 @@ def test_multiseed_calls_a_win_only_when_every_seed_agrees():
     }
     summary = multiseed.summarise(all_win, arms)
     assert summary["headline"]["consistent"]
-    assert summary["headline"]["seeds_significant"] == 3
+    assert summary["headline"]["seeds_below_no_improvement_threshold"] == 3
     assert "continue" in summary["verdict"]
 
     mixed = dict(all_win, **{"2": _fake_seed_result(0.0005, 0.400)})
     summary = multiseed.summarise(mixed, arms)
     assert not summary["headline"]["consistent"]
-    assert summary["headline"]["seeds_significant"] == 2
+    assert summary["headline"]["seeds_below_no_improvement_threshold"] == 2
     assert "stop" in summary["verdict"]
 
     # A seed that improves on average but with the sign unstable under the
