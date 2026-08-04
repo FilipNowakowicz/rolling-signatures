@@ -3,9 +3,9 @@
 Run the reproducible local checks before proposing a change:
 
 ```bash
-pip install -e ".[test]"
-ruff check .
-pytest -q
+uv sync --extra test --extra iisignature
+uv run ruff check .
+uv run pytest -q
 ```
 
 The installable package is in `src/rollsig/`; `tests/` contains the unit and

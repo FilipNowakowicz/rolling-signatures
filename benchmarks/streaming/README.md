@@ -8,9 +8,9 @@ installable `rollsig` package — it consumes `rollsig`'s public API exactly
 as an outside user would.
 
 ```bash
-python -m benchmarks.streaming.bench                 # ~15 min, writes results/
-python -m benchmarks.streaming.bench --budget 0.25   # quick, noisier
-python -m benchmarks.streaming.bench --skip-roughpy  # omit the slow backend
+uv run python -m benchmarks.streaming.bench                 # ~15 min, writes results/
+uv run python -m benchmarks.streaming.bench --budget 0.25   # quick, noisier
+uv run python -m benchmarks.streaming.bench --skip-roughpy  # omit the slow backend
 ```
 
 Everything runs on synthetic random-walk paths, because all of the questions

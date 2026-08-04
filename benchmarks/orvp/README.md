@@ -33,9 +33,9 @@ Two prerequisites, both on kaggle.com:
    exactly like a broken token and isn't.
 
 ```bash
-python -m benchmarks.orvp.download               # train.csv + a 20-stock subset
-python -m benchmarks.orvp.download --stocks 40   # a larger subset
-python -m benchmarks.orvp.download --all         # the entire archive
+uv run python -m benchmarks.orvp.download               # train.csv + a 20-stock subset
+uv run python -m benchmarks.orvp.download --stocks 40   # a larger subset
+uv run python -m benchmarks.orvp.download --all         # the entire archive
 ```
 
 The subset download is the default, since the benchmark evaluates on a stock
@@ -55,15 +55,15 @@ layout is the competition archive's own:
 ## Reproducing a run
 
 ```bash
-python -m benchmarks.orvp.run       --stocks 20 --jobs 8       # all arms, one subset
-python -m benchmarks.orvp.multiseed --seeds 0 1 2 --jobs 8     # all arms, three subsets
-python -m benchmarks.orvp.study     --stocks 20 --jobs 8       # depth x window
+uv run python -m benchmarks.orvp.run       --stocks 20 --jobs 8       # all arms, one subset
+uv run python -m benchmarks.orvp.multiseed --seeds 0 1 2 --jobs 8     # all arms, three subsets
+uv run python -m benchmarks.orvp.study     --stocks 20 --jobs 8       # depth x window
 ```
 
 `multiseed` needs each seed's stocks on disk first:
 
 ```bash
-for seed in 0 1 2; do python -m benchmarks.orvp.download --stocks 20 --seed $seed; done
+for seed in 0 1 2; do uv run python -m benchmarks.orvp.download --stocks 20 --seed $seed; done
 ```
 
 Results land in `results/` as JSON plus a markdown table. Per-stock features
