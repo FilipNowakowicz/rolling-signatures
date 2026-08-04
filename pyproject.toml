@@ -30,3 +30,8 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["F"]
+
+# iisignature 0.24 imports NumPy from setup.py without declaring it as a build
+# dependency. Tell uv what its isolated build environment needs.
+[tool.uv.extra-build-dependencies]
+iisignature = ["numpy"]

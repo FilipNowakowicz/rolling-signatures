@@ -24,7 +24,7 @@ result:
 ## Install
 
 ```bash
-pip install git+https://github.com/FilipNowakowicz/rolling-signatures
+uv add "rollsig @ git+https://github.com/FilipNowakowicz/rolling-signatures"
 ```
 
 Or, for a checkout you intend to work on:
@@ -32,13 +32,13 @@ Or, for a checkout you intend to work on:
 ```bash
 git clone https://github.com/FilipNowakowicz/rolling-signatures
 cd rolling-signatures
-pip install -e ".[test]"
+uv sync --extra test --extra iisignature
 ```
 
 Python 3.11+. `RoughPy` is the default backend and installs as a dependency;
-`iisignature` is an optional extra (`pip install "rollsig[iisignature]"`) and
-is roughly two orders of magnitude faster for log-signatures at the sizes this
-library is aimed at.
+`iisignature` is an optional extra (`uv sync --extra test --extra iisignature`)
+and is roughly two orders of magnitude faster for log-signatures at the sizes
+this library is aimed at.
 
 `rollsig` is installed from this repository rather than from PyPI.
 
