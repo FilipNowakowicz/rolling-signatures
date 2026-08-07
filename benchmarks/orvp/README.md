@@ -58,6 +58,7 @@ layout is the competition archive's own:
 uv run python -m benchmarks.orvp.run       --stocks 20 --jobs 8       # all arms, one subset
 uv run python -m benchmarks.orvp.multiseed --seeds 0 1 2 --jobs 8     # all arms, three subsets
 uv run python -m benchmarks.orvp.study     --stocks 20 --jobs 8       # depth x window
+uv run python -m benchmarks.orvp.universe  --jobs 8                    # frozen arms, all stocks
 ```
 
 `multiseed` needs each seed's stocks on disk first:
@@ -71,9 +72,9 @@ are cached under `<data dir>/cache/`, keyed by *both* signature specs — the
 single-channel one and the multichannel one — so a run can never be served a
 cached frame that was built under a different configuration.
 
-Runtime is dominated by the gradient-boosting fits, not by the signatures —
-building every feature for a stock takes well under a second, while one
-arm's five folds take minutes.
+Runtime is dominated by the model fits, not by the signatures — building the
+feature frame for a stock takes roughly a second, while one arm's five folds
+take minutes.
 
 ## The arms
 
@@ -178,7 +179,8 @@ loses to the aggregates on every subset.** The v0.2 confound was real —
 giving signatures the order-book state does help them — and it was not the
 explanation. The headline comparison is negative on all three seeds and has
 `p_no_improvement < 0.05` on none, so the pre-registered stop rule fires:
-**the ORVP search is closed.**
+configuration search closes. The full-universe study below is a final
+confirmation of the already frozen comparison, not another feature sweep.
 
 Two things the replication caught that a single run would not have:
 
@@ -207,9 +209,33 @@ negative. A confidence interval from a bootstrap over whole `time_id`
 groups accompanies every headline comparison, because the difference
 between two arms is often smaller than the noise in either.
 
-Nor does the negative result generalise beyond this task. It says that on
-10-minute order-book segments, with this learner and these baselines,
-signatures of the book do not beat aggregates of the book. It says nothing
-about signatures on other horizons, other instruments, or other targets, and
-it is not evidence about the streaming engine (v0.3), which is a claim about
-computational cost rather than predictive value.
+Nor does the subset result generalise beyond this task and learner. It says
+that on 10-minute order-book segments, under the fixed gradient booster,
+signatures of the book do not reliably beat aggregates of the book. It says
+nothing about other horizons, instruments, or targets, and it is not evidence
+about the streaming engine (v0.3), which is a claim about computational cost
+rather than predictive value.
+
+## Full-universe confirmation
+
+[`UNIVERSE_STUDY.md`](UNIVERSE_STUDY.md) freezes the comparison and decision
+rule before evaluation. It uses all 112 stocks (428,932 segments), scoring
+only `book+har` and `multisig+book+har`. In addition to the unchanged fixed
+gradient booster, it uses weighted ridge with fold-local preprocessing and
+alpha selected by grouped inner CV inside each of five grouped outer folds.
+
+| Learner | Baseline RMSPE | Challenger RMSPE | Improvement | 95% grouped CI | Stocks improved |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Fixed gradient booster | 0.23399 | 0.23378 | +0.09% | [−0.13%, +0.31%] | 77/112 |
+| Nested ridge | 0.23499 | 0.23405 | **+0.40%** | **[+0.31%, +0.49%]** | **92/112** |
+
+The ridge challenger improves all five outer folds. The fixed gradient
+booster improves only three of five and its interval crosses zero. Thus the
+signatures contain statistically supported incremental information for the
+regularised linear learner, but the pre-specified primary success criterion
+does not pass: the evidence does not support a learner-agnostic improvement.
+
+The aggregate JSON, rendered table, and complete per-stock table are in
+`results/universe.*`. Out-of-fold predictions are generated as an ignored NPZ
+so every reported comparison remains reproducible without redistributing a
+large derived artifact.

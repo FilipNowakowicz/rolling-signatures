@@ -240,6 +240,9 @@ def signature_features(grid: pd.DataFrame, spec: SignatureSpec = SignatureSpec()
     keep on sliding windows, not on nested ones. From-scratch is the right
     call, and it is a measured one (`docs/notes-streaming.html` 11.4).
     """
+    if not spec.windows:
+        return pd.DataFrame(index=pd.RangeIndex(len(grid)))
+
     log_prices = np.log(grid.to_numpy())
     blocks = []
     for window in spec.windows:
