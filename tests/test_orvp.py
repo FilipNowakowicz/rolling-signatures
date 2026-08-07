@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 pytest.importorskip("pandas")
 pytest.importorskip("pyarrow")
 
-from benchmarks.orvp import data, evaluate, features  # noqa: E402
+from benchmarks.orvp import data, evaluate, features, universe  # noqa: E402
 
 N_TIME_IDS = 24
 STOCKS = (0, 1)
@@ -273,6 +273,57 @@ def test_paired_bootstrap_reports_no_improvement_for_identical_arms():
     assert stats["improvement"] == pytest.approx(0.0)
     assert stats["ci_low"] == pytest.approx(0.0)
     assert stats["ci_high"] == pytest.approx(0.0)
+    assert stats["ci_low_pct"] == pytest.approx(0.0)
+    assert stats["ci_high_pct"] == pytest.approx(0.0)
+
+
+def test_nested_ridge_is_grouped_and_produces_finite_predictions():
+    rng = np.random.default_rng(4)
+    groups = np.repeat(np.arange(18), 3)
+    stock_id = np.tile(np.arange(3), 18)
+    signal = rng.normal(size=len(groups))
+    y = np.exp(0.2 * signal + 0.05 * stock_id)
+    X = pd.DataFrame(
+        {
+            "book_signal": signal,
+            "book_missing": np.where(np.arange(len(groups)) % 11 == 0, np.nan, signal),
+            "stock_id": stock_id,
+        }
+    )
+    result = universe.run_nested_ridge(
+        X,
+        y,
+        groups,
+        outer_splits=3,
+        inner_splits=2,
+        alphas=(0.1, 1.0),
+    )
+    assert result.predictions.shape == y.shape
+    assert np.isfinite(result.predictions).all()
+    assert len(result.fold_rmspe) == 3
+    assert len(result.selected_alphas) == 3
+    assert set(result.selected_alphas) <= {0.1, 1.0}
+
+
+def test_per_stock_metrics_reports_each_stock_once():
+    table = pd.DataFrame(
+        {
+            "stock_id": [0, 0, 1, 1],
+            "time_id": [0, 1, 0, 1],
+            "target": [1.0, 2.0, 2.0, 4.0],
+        }
+    )
+    baseline = np.array([1.2, 2.4, 2.4, 4.8])
+    challenger = table["target"].to_numpy()
+    result = universe.per_stock_metrics(table, baseline, challenger)
+    assert result["stock_id"].tolist() == [0, 1]
+    assert result["improvement_pct"].to_numpy() == pytest.approx([100.0, 100.0])
+
+
+def test_signature_features_can_be_explicitly_disabled(orvp_root):
+    grid = data.wap_grid(data.load_book(0, orvp_root))
+    result = features.signature_features(grid, features.SignatureSpec(windows=()))
+    assert result.shape == (len(grid), 0)
 
 
 # --- multichannel signature arm (v0.2.1) ------------------------------------

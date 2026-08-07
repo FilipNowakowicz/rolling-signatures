@@ -6,19 +6,21 @@ sliding-window updates that cost **O(1) per tick in the steady state** —
 derived from the group structure of the tensor algebra (Chen's identity plus
 the group inverse).
 
-The project produced a positive computational result and a negative predictive
+The project produced a positive computational result and a mixed predictive
 result:
 
 - **The streaming engine works, and the asymptotics hold.** Steady-state
   per-tick cost is flat across a 120× change in window length, which makes it
-  129× faster than RoughPy — the default backend — at window 1200. The
-  numerical drift that repeated group operations buy you is measured, bounded
-  and priced rather than waved away.
+  129× faster than RoughPy at window 1200 without re-anchoring, or **98×**
+  faster with the default automatic re-anchoring that bounds numerical drift.
+  The numerical price of repeated group operations is measured rather than
+  waved away.
   [→ Streaming engine](#streaming-engine-constant-cost-per-tick)
-- **On the Optiver Realized Volatility Prediction dataset, signature features
-  did not beat reproduced order-book baselines.** Not with the order-book
-  state handed to them as extra path channels, and not on any of three
-  pre-registered stock subsets.
+- **On the Optiver Realized Volatility Prediction dataset, incremental value
+  was small and learner-dependent.** A final all-112-stock confirmation found
+  a statistically supported 0.40% RMSPE improvement under nested ridge, but
+  only 0.09% under the fixed gradient booster, whose 95% interval crossed
+  zero. The primary success rule therefore did not pass.
   [→ Benchmark](#benchmark-optiver-realized-volatility)
 
 ## Install
@@ -162,9 +164,9 @@ engine). They render properly at
 
 ## Benchmark: Optiver realized volatility
 
-**Headline: on this task, signature features did not improve on reproduced
-order-book baselines — including after being given the order-book state as
-extra path channels, and replicated across three independent stock subsets.**
+**Headline: on this task, multichannel signatures contain a small amount of
+incremental information, but the gain is learner-dependent rather than a
+robust improvement over reproduced order-book baselines.**
 The full study is in [`benchmarks/orvp/`](benchmarks/orvp/README.md); the
 reasoning behind the design is [`docs/notes-orvp.html`](docs/notes-orvp.html).
 
@@ -223,12 +225,42 @@ Read honestly, four things happened:
    on the other two. Any of these single-subset numbers, read alone, would
    have supported a conclusion the other subsets contradict.
 
-**The conclusion, stated plainly:** on ORVP, path signatures of order-book
-data — price alone or price plus book state — do not improve on
-straightforward aggregates of the same data. This is a bounded claim about one
-task, not about signatures in general, but within that task it is tested
-against the obvious confound and replicated across stock universes, so the
-ORVP line of enquiry is closed rather than merely paused.
+The three-subset stage therefore rejected the claim that the signatures
+reliably improved the fixed gradient-boosting pipeline. Because its subsets
+overlap and leave some stocks untested, a final confirmation then froze the
+headline comparison and evaluated the full universe rather than opening a new
+configuration search.
+
+### Full-universe confirmation
+
+The protocol in
+[`benchmarks/orvp/UNIVERSE_STUDY.md`](benchmarks/orvp/UNIVERSE_STUDY.md) was
+fixed before the new scores were computed: all 112 stocks and 428,932 segments,
+`book+har` versus the existing depth-2 `multisig+book+har` arm, with no other
+signature configurations scored. The original fixed gradient booster is the
+primary learner. A weighted ridge model with fold-local preprocessing and
+three-fold grouped inner selection of its regularisation is a pre-specified
+robustness learner.
+
+| Learner | Baseline RMSPE | + multichannel signatures | Improvement | 95% grouped CI | Stocks improved |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Fixed gradient booster | 0.23399 | 0.23378 | +0.09% | [−0.13%, +0.31%] | 77/112 |
+| Nested ridge | 0.23499 | 0.23405 | **+0.40%** | **[+0.31%, +0.49%]** | **92/112** |
+
+The ridge gain appears in all five outer folds and its grouped-bootstrap
+interval excludes zero. The primary gradient-booster interval does not, and
+the challenger is worse in two of its five folds. The defensible conclusion
+is therefore narrower than either “signatures do not help” or “signatures beat
+HAR”: the multichannel coordinates expose incremental linear information
+after conditioning on book + HAR features, but do not produce a statistically
+reliable gain for the fixed nonlinear learner.
+
+The pre-specified success criterion required the primary learner's interval to
+exclude zero, so it does not pass and the ORVP configuration search remains
+closed. This learner contrast is the empirical result; it will not be followed
+by choosing whichever learner or subgroup makes signatures look strongest.
+Full aggregate, fold, bootstrap, and per-stock results are committed in
+[`benchmarks/orvp/results/`](benchmarks/orvp/results/).
 
 Two smaller findings worth recording. `book` alone beats `book+har` on two of
 three subsets, so the best baseline is not the same arm on every subset —
@@ -313,10 +345,11 @@ Two results, in order of how much weight they carry:
    recompute column grows with the window exactly as it must. This is the
    result that matters: it is a statement about the algebra, so a measured
    slope would have meant a bug.
-2. **129× faster than RoughPy at window 1200**, and faster than RoughPy — the
-   library's default backend — at every window measured, from 1.7× at window
-   10. Because streaming is flat and recomputation is not, that ratio keeps
-   growing with the window.
+2. **129× faster than RoughPy at window 1200 without re-anchoring**, and
+   **98× faster with the default automatic re-anchoring** (264.6 µs versus
+   25,987.6 µs). The unrefreshed engine is faster than RoughPy at every window
+   measured, from 1.7× at window 10. Because streaming is flat and
+   recomputation is not, that ratio keeps growing with the window.
 
 **The qualification belongs in the same breath.** The update is interpreted
 Python doing dozens of small numpy calls, so against `iisignature`'s compiled
@@ -351,7 +384,7 @@ shared part cannot be re-decomposed, and not here. Full study:
 | `src/rollsig/` | The library: `transformer.py` (the sklearn estimator), `preprocessing.py` (basepoint, time augmentation, lead-lag, rescaling), `algebra.py` (the truncated tensor algebra), `streaming.py` (the rolling engine), `_backend.py` (the narrow RoughPy / `iisignature` / numpy interface). |
 | `tests/` | Tests and linting run in CI on Python 3.11 and 3.12. The correctness oracles are mathematical: Chen's identity, the shuffle identity, primitivity in the free Lie algebra, invariance under time reparametrization, the group laws, and agreement between the backends. |
 | `CONTRIBUTING.md` | Local checks, package layout, and benchmark/result-integrity rules. |
-| `benchmarks/orvp/` | The realized-volatility study — data pipeline, arms, grouped CV, bootstrap, three-subset replication. Committed results in `results/`. |
+| `benchmarks/orvp/` | The realized-volatility study — data pipeline, arms, grouped CV, bootstrap, three-subset replication, and the all-112-stock confirmation. Committed aggregate and per-stock results in `results/`. |
 | `benchmarks/streaming/` | The streaming study — per-tick timings, the drift measurement, the nested-window retraction. Committed results in `results/`. |
 | `docs/` | The three-part working notes: the mathematics and the build, chapter by chapter. |
 

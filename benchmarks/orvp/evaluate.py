@@ -136,17 +136,23 @@ def paired_bootstrap(
 
     observed = rmspe(y, baseline) - rmspe(y, challenger)
     deltas = np.empty(n_resamples)
+    relative_deltas = np.empty(n_resamples)
     for i in range(n_resamples):
         drawn = rng.choice(unique_groups, size=len(unique_groups), replace=True)
         idx = np.concatenate([index_by_group[g] for g in drawn])
-        deltas[i] = rmspe(y[idx], baseline[idx]) - rmspe(y[idx], challenger[idx])
+        baseline_score = rmspe(y[idx], baseline[idx])
+        deltas[i] = baseline_score - rmspe(y[idx], challenger[idx])
+        relative_deltas[i] = 100.0 * deltas[i] / baseline_score
 
     low, high = np.percentile(deltas, [2.5, 97.5])
+    low_pct, high_pct = np.percentile(relative_deltas, [2.5, 97.5])
     return {
         "improvement": observed,
         "improvement_pct": 100.0 * observed / rmspe(y, baseline),
         "ci_low": float(low),
         "ci_high": float(high),
+        "ci_low_pct": float(low_pct),
+        "ci_high_pct": float(high_pct),
         # A one-sided read of how often resampling reverses the sign.
         "p_no_improvement": float(np.mean(deltas <= 0.0)),
     }
