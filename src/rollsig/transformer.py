@@ -17,7 +17,7 @@ from rollsig._backend import (
     signature,
 )
 from rollsig.preprocessing import preprocess_path
-from rollsig.streaming import Refresh, StreamingSignature
+from rollsig.streaming import Refresh, StreamingSignature, _load_compiled
 
 Output = Literal["signature", "log_signature"]
 Method = Literal["auto", "batch", "streaming"]
@@ -40,10 +40,19 @@ Method = Literal["auto", "batch", "streaming"]
 # can still request ``method="streaming"`` explicitly.
 _STREAMING_WINS_ABOVE: dict[str, dict[int, int]] = {"iisignature": {2: 1200, 3: 600}}
 
+# The same table when the compiled (Numba) streaming engine is installed, from
+# `results/streaming_compiled.json` (key `crossover_window_compiled`, the
+# default re-anchoring arm). The compiled update beat `iisignature` at every
+# window measured, down to 10, so the threshold is the smallest window in the
+# benchmark -- "at every window measured", not a measured crossover at 10.
+# `tests/test_streaming.py` pins this table to that file as well.
+_COMPILED_STREAMING_WINS_ABOVE: dict[str, dict[int, int]] = {"iisignature": {2: 10, 3: 10}}
+
 
 def _streaming_threshold(backend: Backend, depth: int, transformed_dim: int) -> int | None:
     """Measured streaming threshold, or ``None`` when no measurement applies."""
-    by_depth = _STREAMING_WINS_ABOVE.get(backend)
+    table = _COMPILED_STREAMING_WINS_ABOVE if _load_compiled() is not None else _STREAMING_WINS_ABOVE
+    by_depth = table.get(backend)
     if by_depth is None:
         return 1
     if transformed_dim != 4:
@@ -158,8 +167,10 @@ class SignatureTransformer(BaseEstimator, TransformerMixin):
     def _select_method(self, transformed_dim: int) -> str:
         """Resolve `method` to the route `transform` will take.
 
-        Deterministic: a function of the constructor arguments alone, with no
-        timing at fit time and no dependence on the data.
+        Deterministic: a function of the constructor arguments and of whether
+        Numba is installed (which selects the compiled streaming engine and its
+        measured thresholds), with no timing at fit time and no dependence on
+        the data.
 
         `"batch"` and `"streaming"` are authoritative -- an explicit choice is
         honoured whatever the crossover says (`"streaming"` on a configuration

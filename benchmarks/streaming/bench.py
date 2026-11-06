@@ -345,7 +345,7 @@ def warmup_cost() -> dict:
 
 def markdown_table(results: dict) -> str:
     rows = results["cost_by_window"]
-    backends = [key[len("batch_") :] for key in rows[0] if key.startswith("batch_") and not key.endswith("_ticks")]
+    backends = [key[len("batch_") :] for key in rows[0] if key.startswith("batch_") and not key.endswith(("_ticks", "_repeats"))]
 
     lines = ["### Per-tick cost (microseconds), 1 channel + time augmentation + lead-lag", ""]
     compiled = "streaming_compiled" in rows[0]

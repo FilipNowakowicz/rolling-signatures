@@ -248,7 +248,7 @@ def test_transformer_defaults_to_streaming_and_agrees_with_batch(series):
         ("iisignature", 5000, 5, {"lead_lag_transform": True}, "batch"),
     ],
 )
-def test_auto_follows_the_measured_crossover(series, backend, window, depth, options, expected):
+def test_auto_follows_the_measured_crossover(series, monkeypatch, backend, window, depth, options, expected):
     """`method="auto"` is a speed decision, so it has to follow the speed data.
 
     Before v0.3's polish pass `auto` streamed whenever streaming *could*
@@ -256,8 +256,39 @@ def test_auto_follows_the_measured_crossover(series, backend, window, depth, opt
     it: `iisignature` recomputes in C, and below the crossover window measured
     in `benchmarks/streaming/` that is the faster route.
     """
+    # This table is the interpreted engine's; the compiled one is tested below.
+    monkeypatch.setattr("rollsig.transformer._load_compiled", lambda: None)
     estimator = SignatureTransformer(window=window, depth=depth, backend=backend, **options).fit(series)
     assert estimator.method_ == expected
+
+
+def test_auto_with_the_compiled_engine_streams_at_every_measured_window(series):
+    pytest.importorskip("numba")
+    for depth in (2, 3):
+        for window in (10, 20, 1200):
+            estimator = SignatureTransformer(
+                window=window, depth=depth, backend="iisignature", lead_lag_transform=True
+            ).fit(series)
+            assert estimator.method_ == "streaming"
+    # Unmeasured dimensions and depths stay on the conservative batch route.
+    assert SignatureTransformer(window=5000, depth=2, backend="iisignature").fit(series).method_ == "batch"
+    assert (
+        SignatureTransformer(window=5000, depth=5, backend="iisignature", lead_lag_transform=True)
+        .fit(series)
+        .method_
+        == "batch"
+    )
+
+
+def test_compiled_thresholds_match_the_committed_benchmark():
+    from rollsig.transformer import _COMPILED_STREAMING_WINS_ABOVE
+
+    results = Path(__file__).resolve().parents[1] / "benchmarks/streaming/results/streaming_compiled.json"
+    data = json.loads(results.read_text())
+    measured = data["crossover_window_compiled"]["iisignature"]["streaming_compiled_refresh"]
+    for depth, window in _COMPILED_STREAMING_WINS_ABOVE["iisignature"].items():
+        assert measured[str(depth)] == window
+    assert min(row["window"] for row in data["cost_by_window"]) == 10
 
 
 def test_auto_thresholds_match_the_committed_benchmark():
