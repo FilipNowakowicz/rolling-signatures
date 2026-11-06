@@ -105,10 +105,9 @@ hardware-independent guarantees. The `crossover_window` entry in
 floating-point noise either way, and an explicit `method="batch"` or
 `method="streaming"` overrides the heuristic.
 
-A compiled implementation of the same identity would move the crossover to a
-very small window. That is deliberately not done here — `rollsig`'s stated
-non-goals include reimplementing low-level signature computation, and the
-value of `rollsig.algebra` is that the algebra is legible.
+A compiled implementation of the same identity moves the crossover below the
+smallest window measured; see "The compiled engine" below. It is an optional
+kernel beside `rollsig.algebra`, which stays the legible reference.
 
 ### 3. What does the update cost in accuracy?
 
@@ -178,6 +177,61 @@ backend three times and not be clever.** The chunked route is worth having
 when the backend is the numpy one, and would be worth having again if the
 algebra were compiled; neither is where this benchmark sits.
 
+## The compiled engine
+
+`benchmarks/streaming/PROTOCOL_compiled.md` (committed before measuring) fixes
+the comparison: `iisignature` is the headline, whichever way it goes. Run:
+
+```bash
+uv run python -m benchmarks.streaming.bench --compiled --repeats 3 --budget 1.5 \
+    --out benchmarks/streaming/results/streaming_compiled.json
+```
+
+Median of 3 repeats per cell, batch columns re-measured in the same run,
+Python 3.12.13, numpy 2.5.1, Numba 0.68.1, Linux 6.18.59, 12 cores shared with
+other jobs (load average about 2.7 at start). Per tick, microseconds, default
+re-anchoring:
+
+| depth | window | compiled | interpreted | `iisignature` | RoughPy |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 2 | 10 | 3.1 | 130.7 | 17.4 | 192.4 |
+| 2 | 300 | 2.9 | 146.4 | 63.4 | 2915.8 |
+| 2 | 1200 | 3.3 | 161.5 | 234.5 | 12438.5 |
+| 3 | 10 | 3.9 | 218.8 | 22.2 | 464.4 |
+| 3 | 300 | 4.0 | 261.7 | 174.5 | 6358.7 |
+| 3 | 1200 | 4.3 | 250.9 | 668.8 | 26688.6 |
+
+(All twelve cells: `results/streaming_compiled_table.md`.)
+
+- **Flat in the window:** 2.7 to 3.3 µs at depth 2 and 3.8 to 4.3 µs at
+  depth 3 across windows 10 to 1200 (with re-anchoring).
+- **Against `iisignature` there is no crossover in the measured range.** The
+  compiled update is faster at every window, down to 10: 5.7× at depth 2 and
+  5.7× at depth 3 at window 10, 71× and 156× at window 1200. The recorded
+  crossover is therefore 10, the smallest window measured, and means "at every
+  window measured"; windows below 10 were not tried.
+- **Against RoughPy at window 1200:** about 3,800× (depth 2) and 6,200×
+  (depth 3). Against the interpreted engine it is 49× and 59× faster.
+- **Accuracy:** re-anchored drift is 5.6e-15 at depths 2 to 5. Without
+  re-anchoring: 5.6e-15, 5.3e-14, 3.9e-12, 2.3e-10 at depths 2 to 5.
+- **Warm-up:** a fresh process takes about 6.2 s to its first compiled update
+  with an empty Numba cache and 1.4 s with a warm one (imports included). The
+  per-tick figures exclude it.
+- **A second run under load** (average 5 to 7) is kept as
+  `results/streaming_compiled_loaded.json`; its cells are noisier (compiled
+  5 to 9 µs) and the conclusions are the same. The quiet run is the reported
+  one.
+- **Caveats:** one machine, one channel with time augmentation and lead-lag,
+  synthetic paths. Per-tick figures include about 1 µs of Python call overhead.
+  `StreamingSignature.extend` runs the whole loop in compiled code and avoids
+  it, but that is not what is reported here. The committed interpreted columns
+  in the table above are from a different environment (Python 3.14.6); the
+  same-run interpreted and batch columns here are within about 30% of them.
+
+`method="auto"` uses the compiled thresholds when Numba is installed (pinned to
+`streaming_compiled.json` by `tests/test_streaming.py`) and the interpreted
+ones otherwise.
+
 ## Reading the results honestly
 
 - **The asymptotic claim is the strong one and it holds — in the steady
@@ -185,9 +239,10 @@ algebra were compiled; neither is where this benchmark sits.
   statement about the algebra, and it is what the streaming column measures.
   It is not a claim about every update from tick 1: under time augmentation
   the warm-up recomputes, at O(window) a tick, until the window fills.
-- **The wall-clock claim is conditional and is stated as such.** The update is
-  interpreted Python; against a compiled batch backend it wins only past a
-  crossover window. The defensible headline is the 129× over RoughPy at
+- **The wall-clock claim is conditional and is stated as such.** The
+  interpreted update is Python; against a compiled batch backend it wins only
+  past a crossover window. The compiled kernel (section above) removes that
+  qualification on the measured grid, on one machine. The defensible headline is the 129× over RoughPy at
   window 1200, together with the flatness — quoting the 452× against the numpy
   reference, or any speedup, without the `iisignature` qualification beside it
   would be dishonest, so the `iisignature` column is in every table.

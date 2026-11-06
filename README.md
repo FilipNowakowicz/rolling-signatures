@@ -14,7 +14,9 @@ result:
   129× faster than RoughPy at window 1200 without re-anchoring, or **98×**
   faster with the default automatic re-anchoring that bounds numerical drift.
   The numerical price of repeated group operations is measured rather than
-  waved away.
+  waved away. An optional compiled (Numba) kernel for the same update brings
+  the per-tick cost to about 3–4 µs and beats batch `iisignature` at every
+  window measured, from 10 to 1200; the interpreted version does not.
   [→ Streaming engine](#streaming-engine-constant-cost-per-tick)
 - **On the Optiver Realized Volatility Prediction dataset, incremental value
   was small and learner-dependent.** A final all-112-stock confirmation found
@@ -42,6 +44,10 @@ Python 3.11+. `RoughPy` is the default backend and installs as a dependency;
 and is roughly two orders of magnitude faster for log-signatures at the sizes
 this library is aimed at.
 
+The streaming update has an optional compiled kernel: add `--extra compiled`
+(Numba). Without it everything runs on the pure numpy implementation, so a
+plain install needs no compiler.
+
 `rollsig` is installed from this repository rather than from PyPI.
 
 ## Use
@@ -64,8 +70,11 @@ features = SignatureTransformer(
 `method="auto"` (the default) is a benchmark-derived heuristic. Against
 RoughPy and numpy it chooses streaming because that route won at every measured
 window. With `backend="iisignature"`, it uses the measured crossover only for
-the ORVP-style configuration of four transformed channels: batch below window
-1200 at depth 2 or 600 at depth 3, and streaming from those thresholds. For a
+the ORVP-style configuration of four transformed channels. With the interpreted
+engine (Numba not installed): batch below window 1200 at depth 2 or 600 at
+depth 3, and streaming from those thresholds. With the compiled engine
+(Numba installed) streaming won at every window measured, so `auto` streams
+from window 10. This means `auto` depends on whether Numba is installed. For a
 different transformed dimension or a depth outside 2–3, it conservatively
 chooses batch. An explicit `method="batch"` or `method="streaming"` overrides
 that choice. The two routes agree to floating-point noise, so this is purely a
@@ -330,7 +339,8 @@ tick before the window fills changes the increments already accumulated and is
 recomputed instead — O(window²) once at the head of a stream. The measurements
 below, like the claim, are steady-state.
 
-**Measured, per tick, in microseconds:**
+**Measured, per tick, in microseconds** (interpreted engine; from the committed
+`results/streaming.json`):
 
 | depth | window | streaming | batch RoughPy | batch `iisignature` | batch numpy |
 | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -351,14 +361,45 @@ Two results, in order of how much weight they carry:
    measured, from 1.7× at window 10. Because streaming is flat and
    recomputation is not, that ratio keeps growing with the window.
 
-**The qualification belongs in the same breath.** The update is interpreted
+**The qualification belongs in the same breath.** The interpreted update is
 Python doing dozens of small numpy calls, so against `iisignature`'s compiled
 recompute it wins only past a crossover window — measured at 1200 for depth 2
 and 600 for depth 3. Below that, compiled batch is faster despite being
-asymptotically worse, and it is what `method="auto"` picks when the backend is
-`iisignature`. The pure-numpy comparison (up to 452× at window 1200) is the
-weakest of the three and is reported for completeness only: numpy here is a
-test oracle, not a serious competitor.
+asymptotically worse. The pure-numpy comparison (up to 452× at window 1200) is
+the weakest of the three and is reported for completeness only: numpy here is
+a test oracle, not a serious competitor.
+
+**The compiled kernel changes that.** The same update, written as loops over
+flat arrays and compiled with Numba (`rollsig._compiled`; the readable numpy
+version stays the reference and the default without Numba), was benchmarked
+with the same method, with every batch column re-measured in the same run
+(median of 3 repeats, 1.5 s per repeat, Python 3.12.13, Numba 0.68.1, 12-core
+shared machine at load about 2.7), re-anchoring on:
+
+| depth | window | compiled | interpreted | batch `iisignature` | batch RoughPy |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 2 | 10 | 3.1 | 130.7 | 17.4 | 192.4 |
+| 2 | 1200 | 3.3 | 161.5 | 234.5 | 12438.5 |
+| 3 | 10 | 3.9 | 218.8 | 22.2 | 464.4 |
+| 3 | 300 | 4.0 | 261.7 | 174.5 | 6358.7 |
+| 3 | 1200 | 4.3 | 250.9 | 668.8 | 26688.6 |
+
+Per-tick cost is 2.6–3.2 µs at depth 2 and 3.5–3.9 µs at depth 3 without
+re-anchoring, and 2.7–3.3 and 3.8–4.3 µs with it, flat across windows 10 to
+1200. It beats `iisignature` at every window measured, so there is no
+crossover inside the measured range: the ratio is 5.7× at depth 2 and 5.7× at
+depth 3 at window 10, and at window 1200 it is **71×** at depth 2 and **156×**
+at depth 3, against RoughPy 3,800× and 6,200×. A second run taken under heavier
+machine load (load 5–7) gave the same picture with noisier cells
+(`results/streaming_compiled_loaded.json`). Limits on these claims: the
+figures are the cost of `StreamingSignature.update` on one channel,
+time-augmented and lead-lagged; the first compiled call pays a one-off
+compilation (about 6 s in a fresh process with an empty cache, about 1.4 s
+with Numba's on-disk cache, which includes imports); a single `update` call
+carries about 1 µs of Python overhead, which is part of the figure; the
+absolute numbers depend on this machine, and the batch columns here differ
+from the committed table by up to about 30% because the environment does.
+Re-anchored drift stays at 5.6e-15 at depths 2 to 5, as before.
 
 **The numerical price is quantified, not waved away.** Repeated group
 operations drift from a from-scratch recomputation by ~3 orders of magnitude
@@ -399,9 +440,10 @@ Deliberately not done:
 
 - **Low-level signature computation for production use.** This wraps
   `iisignature` and `RoughPy`; the pure-numpy implementation exists as a test
-  oracle. A compiled version of the streaming update would move the
-  `iisignature` crossover to a very small window — and would also make
-  `rollsig.algebra` unreadable, which is most of its value.
+  oracle. The streaming update does have an optional Numba kernel, kept
+  alongside `rollsig.algebra` rather than replacing it, so the readable
+  version remains the reference and the fallback. Batch signatures are still
+  `iisignature`'s and RoughPy's job.
 - **Panel/segment classification.** That is `sktime`'s job and it does it
   well.
 - **A general-purpose ML library.** This stays scoped to financial time

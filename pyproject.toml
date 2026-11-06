@@ -18,6 +18,9 @@ dependencies = [
 
 [project.optional-dependencies]
 iisignature = ["iisignature>=0.24"]
+# Optional compiled kernel for the streaming update (`rollsig._compiled`).
+# Without it the pure numpy implementation is used.
+compiled = ["numba>=0.60"]
 test = ["pytest>=7", "hypothesis>=6", "pandas>=2", "pyarrow>=14", "ruff>=0.12"]
 # Not part of the library: what `benchmarks/orvp` needs to run.
 benchmark = ["pandas>=2", "pyarrow>=14", "kaggle>=1.6"]

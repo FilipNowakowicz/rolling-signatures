@@ -22,10 +22,13 @@ jobs:
           enable-cache: true
 
       - name: Install locked dependencies
-        run: uv sync --locked --extra test --extra iisignature
+        run: uv sync --locked --extra test --extra iisignature --extra compiled
 
       - name: Lint
-        run: uv run --locked --extra test --extra iisignature ruff check .
+        run: uv run --locked --extra test --extra iisignature --extra compiled ruff check .
 
-      - name: Run tests
-        run: uv run --locked --extra test --extra iisignature pytest -q
+      - name: Run tests (with the compiled kernel)
+        run: uv run --locked --extra test --extra iisignature --extra compiled pytest -q
+
+      - name: Run tests (pure numpy fallback, no Numba)
+        run: uv run --locked --exact --extra test --extra iisignature pytest -q

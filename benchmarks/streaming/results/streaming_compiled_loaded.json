@@ -1,0 +1,1172 @@
+{
+  "config": {
+    "dim": 1,
+    "preprocessing": {
+      "time_augmentation": true,
+      "lead_lag_transform": true
+    },
+    "windows": [
+      10,
+      30,
+      100,
+      300,
+      600,
+      1200
+    ],
+    "depths": [
+      2,
+      3
+    ],
+    "backends": [
+      "numpy",
+      "iisignature",
+      "roughpy"
+    ],
+    "budget_seconds": 1.5,
+    "repeats": 3,
+    "numba": "0.68.1",
+    "machine_load_average_at_start": [
+      4.86083984375,
+      5.82958984375,
+      7.30419921875
+    ],
+    "cpu_count": 12,
+    "seed": 0,
+    "python": "3.12.13",
+    "platform": "Linux-6.18.59-x86_64-with-glibc2.44",
+    "numpy": "2.5.1"
+  },
+  "cost_by_window": [
+    {
+      "depth": 2,
+      "window": 10,
+      "streaming": 309.5,
+      "streaming_ticks": 3000,
+      "streaming_repeats": [
+        309.5,
+        343.59,
+        306.84
+      ],
+      "streaming_refresh": 366.56,
+      "streaming_refresh_ticks": 3000,
+      "streaming_refresh_repeats": [
+        354.58,
+        403.36,
+        366.56
+      ],
+      "streaming_compiled": 5.8,
+      "streaming_compiled_ticks": 3000,
+      "streaming_compiled_repeats": [
+        8.09,
+        5.8,
+        5.5
+      ],
+      "streaming_compiled_refresh": 5.37,
+      "streaming_compiled_refresh_ticks": 3000,
+      "streaming_compiled_refresh_repeats": [
+        5.37,
+        5.6,
+        5.14
+      ],
+      "batch_numpy": 1100.31,
+      "batch_numpy_ticks": 1230,
+      "batch_numpy_repeats": [
+        1030.68,
+        1100.31,
+        1220.13
+      ],
+      "batch_iisignature": 52.43,
+      "batch_iisignature_ticks": 3000,
+      "batch_iisignature_repeats": [
+        52.43,
+        56.08,
+        49.0
+      ],
+      "batch_roughpy": 520.47,
+      "batch_roughpy_ticks": 2897,
+      "batch_roughpy_repeats": [
+        528.91,
+        520.47,
+        517.89
+      ]
+    },
+    {
+      "depth": 2,
+      "window": 30,
+      "streaming": 314.54,
+      "streaming_ticks": 3000,
+      "streaming_repeats": [
+        294.04,
+        314.54,
+        331.84
+      ],
+      "streaming_refresh": 441.97,
+      "streaming_refresh_ticks": 3000,
+      "streaming_refresh_repeats": [
+        443.29,
+        441.97,
+        417.05
+      ],
+      "streaming_compiled": 6.68,
+      "streaming_compiled_ticks": 3000,
+      "streaming_compiled_repeats": [
+        9.01,
+        5.2,
+        6.68
+      ],
+      "streaming_compiled_refresh": 7.62,
+      "streaming_compiled_refresh_ticks": 3000,
+      "streaming_compiled_refresh_repeats": [
+        7.62,
+        6.97,
+        8.59
+      ],
+      "batch_numpy": 3539.53,
+      "batch_numpy_ticks": 421,
+      "batch_numpy_repeats": [
+        3539.53,
+        3536.82,
+        3566.53
+      ],
+      "batch_iisignature": 69.24,
+      "batch_iisignature_ticks": 3000,
+      "batch_iisignature_repeats": [
+        69.24,
+        67.34,
+        70.6
+      ],
+      "batch_roughpy": 1201.39,
+      "batch_roughpy_ticks": 1464,
+      "batch_roughpy_repeats": [
+        1240.52,
+        1201.39,
+        1024.83
+      ]
+    },
+    {
+      "depth": 2,
+      "window": 100,
+      "streaming": 298.38,
+      "streaming_ticks": 3000,
+      "streaming_repeats": [
+        298.38,
+        323.84,
+        281.76
+      ],
+      "streaming_refresh": 377.65,
+      "streaming_refresh_ticks": 3000,
+      "streaming_refresh_repeats": [
+        406.87,
+        336.08,
+        377.65
+      ],
+      "streaming_compiled": 6.07,
+      "streaming_compiled_ticks": 3000,
+      "streaming_compiled_repeats": [
+        5.19,
+        6.07,
+        6.18
+      ],
+      "streaming_compiled_refresh": 7.48,
+      "streaming_compiled_refresh_ticks": 3000,
+      "streaming_compiled_refresh_repeats": [
+        7.48,
+        8.43,
+        5.64
+      ],
+      "batch_numpy": 9389.61,
+      "batch_numpy_ticks": 161,
+      "batch_numpy_repeats": [
+        9516.82,
+        9389.61,
+        9353.39
+      ],
+      "batch_iisignature": 87.96,
+      "batch_iisignature_ticks": 3000,
+      "batch_iisignature_repeats": [
+        87.96,
+        85.01,
+        92.5
+      ],
+      "batch_roughpy": 2836.09,
+      "batch_roughpy_ticks": 495,
+      "batch_roughpy_repeats": [
+        2836.09,
+        2693.74,
+        3031.92
+      ]
+    },
+    {
+      "depth": 2,
+      "window": 300,
+      "streaming": 288.65,
+      "streaming_ticks": 3000,
+      "streaming_repeats": [
+        324.04,
+        288.65,
+        273.61
+      ],
+      "streaming_refresh": 403.52,
+      "streaming_refresh_ticks": 3000,
+      "streaming_refresh_repeats": [
+        406.11,
+        317.66,
+        403.52
+      ],
+      "streaming_compiled": 8.22,
+      "streaming_compiled_ticks": 3000,
+      "streaming_compiled_repeats": [
+        8.22,
+        6.63,
+        9.58
+      ],
+      "streaming_compiled_refresh": 9.35,
+      "streaming_compiled_refresh_ticks": 3000,
+      "streaming_compiled_refresh_repeats": [
+        10.01,
+        9.35,
+        7.73
+      ],
+      "batch_numpy": 32671.65,
+      "batch_numpy_ticks": 46,
+      "batch_numpy_repeats": [
+        32613.25,
+        32671.65,
+        33013.27
+      ],
+      "batch_iisignature": 180.36,
+      "batch_iisignature_ticks": 3000,
+      "batch_iisignature_repeats": [
+        184.5,
+        164.06,
+        180.36
+      ],
+      "batch_roughpy": 7473.11,
+      "batch_roughpy_ticks": 201,
+      "batch_roughpy_repeats": [
+        7178.18,
+        7595.21,
+        7473.11
+      ]
+    },
+    {
+      "depth": 2,
+      "window": 600,
+      "streaming": 292.62,
+      "streaming_ticks": 3000,
+      "streaming_repeats": [
+        295.21,
+        292.62,
+        259.24
+      ],
+      "streaming_refresh": 362.56,
+      "streaming_refresh_ticks": 3000,
+      "streaming_refresh_repeats": [
+        362.56,
+        383.09,
+        360.68
+      ],
+      "streaming_compiled": 6.44,
+      "streaming_compiled_ticks": 3000,
+      "streaming_compiled_repeats": [
+        8.14,
+        6.44,
+        5.4
+      ],
+      "streaming_compiled_refresh": 6.63,
+      "streaming_compiled_refresh_ticks": 3000,
+      "streaming_compiled_refresh_repeats": [
+        6.75,
+        6.63,
+        6.1
+      ],
+      "batch_numpy": 63084.98,
+      "batch_numpy_ticks": 24,
+      "batch_numpy_repeats": [
+        53959.05,
+        63084.98,
+        64300.35
+      ],
+      "batch_iisignature": 331.02,
+      "batch_iisignature_ticks": 3000,
+      "batch_iisignature_repeats": [
+        311.45,
+        343.85,
+        331.02
+      ],
+      "batch_roughpy": 14202.43,
+      "batch_roughpy_ticks": 118,
+      "batch_roughpy_repeats": [
+        15726.54,
+        14202.43,
+        12784.27
+      ]
+    },
+    {
+      "depth": 2,
+      "window": 1200,
+      "streaming": 283.43,
+      "streaming_ticks": 3000,
+      "streaming_repeats": [
+        288.08,
+        283.43,
+        264.39
+      ],
+      "streaming_refresh": 355.85,
+      "streaming_refresh_ticks": 3000,
+      "streaming_refresh_repeats": [
+        376.45,
+        355.85,
+        338.51
+      ],
+      "streaming_compiled": 6.81,
+      "streaming_compiled_ticks": 3000,
+      "streaming_compiled_repeats": [
+        8.46,
+        4.98,
+        6.81
+      ],
+      "streaming_compiled_refresh": 7.51,
+      "streaming_compiled_refresh_ticks": 3000,
+      "streaming_compiled_refresh_repeats": [
+        7.2,
+        7.92,
+        7.51
+      ],
+      "batch_numpy": 121378.88,
+      "batch_numpy_ticks": 13,
+      "batch_numpy_repeats": [
+        131842.56,
+        118240.15,
+        121378.88
+      ],
+      "batch_iisignature": 538.18,
+      "batch_iisignature_ticks": 2948,
+      "batch_iisignature_repeats": [
+        544.18,
+        538.18,
+        508.83
+      ],
+      "batch_roughpy": 29412.49,
+      "batch_roughpy_ticks": 52,
+      "batch_roughpy_repeats": [
+        28527.37,
+        30808.96,
+        29412.49
+      ]
+    },
+    {
+      "depth": 3,
+      "window": 10,
+      "streaming": 433.12,
+      "streaming_ticks": 3000,
+      "streaming_repeats": [
+        433.12,
+        485.81,
+        400.73
+      ],
+      "streaming_refresh": 504.96,
+      "streaming_refresh_ticks": 3000,
+      "streaming_refresh_repeats": [
+        548.79,
+        504.96,
+        476.24
+      ],
+      "streaming_compiled": 6.01,
+      "streaming_compiled_ticks": 3000,
+      "streaming_compiled_repeats": [
+        6.01,
+        5.81,
+        6.74
+      ],
+      "streaming_compiled_refresh": 6.31,
+      "streaming_compiled_refresh_ticks": 3000,
+      "streaming_compiled_refresh_repeats": [
+        5.92,
+        6.31,
+        9.45
+      ],
+      "batch_numpy": 1531.6,
+      "batch_numpy_ticks": 1003,
+      "batch_numpy_repeats": [
+        1531.6,
+        1567.4,
+        1495.79
+      ],
+      "batch_iisignature": 60.85,
+      "batch_iisignature_ticks": 3000,
+      "batch_iisignature_repeats": [
+        51.44,
+        61.85,
+        60.85
+      ],
+      "batch_roughpy": 1158.76,
+      "batch_roughpy_ticks": 1434,
+      "batch_roughpy_repeats": [
+        1158.76,
+        1211.71,
+        1046.19
+      ]
+    },
+    {
+      "depth": 3,
+      "window": 30,
+      "streaming": 391.86,
+      "streaming_ticks": 3000,
+      "streaming_repeats": [
+        379.22,
+        441.75,
+        391.86
+      ],
+      "streaming_refresh": 571.47,
+      "streaming_refresh_ticks": 2487,
+      "streaming_refresh_repeats": [
+        532.64,
+        571.47,
+        603.23
+      ],
+      "streaming_compiled": 7.18,
+      "streaming_compiled_ticks": 3000,
+      "streaming_compiled_repeats": [
+        6.43,
+        10.34,
+        7.18
+      ],
+      "streaming_compiled_refresh": 9.01,
+      "streaming_compiled_refresh_ticks": 3000,
+      "streaming_compiled_refresh_repeats": [
+        8.39,
+        9.01,
+        9.23
+      ],
+      "batch_numpy": 4738.35,
+      "batch_numpy_ticks": 311,
+      "batch_numpy_repeats": [
+        4652.01,
+        4738.35,
+        4829.29
+      ],
+      "batch_iisignature": 72.36,
+      "batch_iisignature_ticks": 3000,
+      "batch_iisignature_repeats": [
+        72.36,
+        70.99,
+        81.65
+      ],
+      "batch_roughpy": 2078.63,
+      "batch_roughpy_ticks": 587,
+      "batch_roughpy_repeats": [
+        2078.63,
+        1989.79,
+        2557.17
+      ]
+    },
+    {
+      "depth": 3,
+      "window": 100,
+      "streaming": 418.28,
+      "streaming_ticks": 3000,
+      "streaming_repeats": [
+        418.28,
+        451.95,
+        404.48
+      ],
+      "streaming_refresh": 549.05,
+      "streaming_refresh_ticks": 2732,
+      "streaming_refresh_repeats": [
+        514.54,
+        562.86,
+        549.05
+      ],
+      "streaming_compiled": 8.17,
+      "streaming_compiled_ticks": 3000,
+      "streaming_compiled_repeats": [
+        8.87,
+        8.17,
+        5.89
+      ],
+      "streaming_compiled_refresh": 9.05,
+      "streaming_compiled_refresh_ticks": 3000,
+      "streaming_compiled_refresh_repeats": [
+        7.1,
+        10.79,
+        9.05
+      ],
+      "batch_numpy": 16508.71,
+      "batch_numpy_ticks": 91,
+      "batch_numpy_repeats": [
+        16199.57,
+        16710.7,
+        16508.71
+      ],
+      "batch_iisignature": 157.11,
+      "batch_iisignature_ticks": 3000,
+      "batch_iisignature_repeats": [
+        152.82,
+        173.24,
+        157.11
+      ],
+      "batch_roughpy": 4824.23,
+      "batch_roughpy_ticks": 305,
+      "batch_roughpy_repeats": [
+        4680.73,
+        4824.23,
+        4924.54
+      ]
+    },
+    {
+      "depth": 3,
+      "window": 300,
+      "streaming": 456.58,
+      "streaming_ticks": 3000,
+      "streaming_repeats": [
+        460.05,
+        456.58,
+        400.04
+      ],
+      "streaming_refresh": 543.71,
+      "streaming_refresh_ticks": 2475,
+      "streaming_refresh_repeats": [
+        543.71,
+        513.4,
+        606.12
+      ],
+      "streaming_compiled": 7.31,
+      "streaming_compiled_ticks": 3000,
+      "streaming_compiled_repeats": [
+        5.74,
+        7.31,
+        8.77
+      ],
+      "streaming_compiled_refresh": 8.65,
+      "streaming_compiled_refresh_ticks": 3000,
+      "streaming_compiled_refresh_repeats": [
+        7.08,
+        10.49,
+        8.65
+      ],
+      "batch_numpy": 47919.42,
+      "batch_numpy_ticks": 32,
+      "batch_numpy_repeats": [
+        42997.49,
+        50179.96,
+        47919.42
+      ],
+      "batch_iisignature": 372.79,
+      "batch_iisignature_ticks": 3000,
+      "batch_iisignature_repeats": [
+        357.65,
+        372.79,
+        392.74
+      ],
+      "batch_roughpy": 14143.17,
+      "batch_roughpy_ticks": 123,
+      "batch_roughpy_repeats": [
+        14143.17,
+        14941.3,
+        12207.94
+      ]
+    },
+    {
+      "depth": 3,
+      "window": 600,
+      "streaming": 406.02,
+      "streaming_ticks": 3000,
+      "streaming_repeats": [
+        406.02,
+        355.98,
+        411.24
+      ],
+      "streaming_refresh": 533.5,
+      "streaming_refresh_ticks": 3000,
+      "streaming_refresh_repeats": [
+        577.28,
+        533.5,
+        482.55
+      ],
+      "streaming_compiled": 8.25,
+      "streaming_compiled_ticks": 3000,
+      "streaming_compiled_repeats": [
+        9.76,
+        6.04,
+        8.25
+      ],
+      "streaming_compiled_refresh": 8.55,
+      "streaming_compiled_refresh_ticks": 3000,
+      "streaming_compiled_refresh_repeats": [
+        8.55,
+        6.26,
+        9.69
+      ],
+      "batch_numpy": 89085.6,
+      "batch_numpy_ticks": 17,
+      "batch_numpy_repeats": [
+        88821.94,
+        89085.6,
+        91964.45
+      ],
+      "batch_iisignature": 694.39,
+      "batch_iisignature_ticks": 2161,
+      "batch_iisignature_repeats": [
+        702.67,
+        673.93,
+        694.39
+      ],
+      "batch_roughpy": 27492.98,
+      "batch_roughpy_ticks": 55,
+      "batch_roughpy_repeats": [
+        28291.17,
+        24548.64,
+        27492.98
+      ]
+    },
+    {
+      "depth": 3,
+      "window": 1200,
+      "streaming": 437.66,
+      "streaming_ticks": 3000,
+      "streaming_repeats": [
+        317.4,
+        443.71,
+        437.66
+      ],
+      "streaming_refresh": 327.63,
+      "streaming_refresh_ticks": 3000,
+      "streaming_refresh_repeats": [
+        312.7,
+        327.63,
+        381.82
+      ],
+      "streaming_compiled": 5.04,
+      "streaming_compiled_ticks": 3000,
+      "streaming_compiled_repeats": [
+        4.84,
+        5.59,
+        5.04
+      ],
+      "streaming_compiled_refresh": 5.88,
+      "streaming_compiled_refresh_ticks": 3000,
+      "streaming_compiled_refresh_repeats": [
+        6.08,
+        5.88,
+        5.28
+      ],
+      "batch_numpy": 114865.92,
+      "batch_numpy_ticks": 12,
+      "batch_numpy_repeats": [
+        113966.38,
+        114865.92,
+        131048.01
+      ],
+      "batch_iisignature": 863.73,
+      "batch_iisignature_ticks": 1740,
+      "batch_iisignature_repeats": [
+        863.73,
+        874.54,
+        862.19
+      ],
+      "batch_roughpy": 33847.51,
+      "batch_roughpy_ticks": 45,
+      "batch_roughpy_repeats": [
+        33029.68,
+        33847.51,
+        33951.52
+      ]
+    }
+  ],
+  "crossover_window": {
+    "iisignature": {
+      "2": 600,
+      "3": 600
+    },
+    "roughpy": {
+      "2": 10,
+      "3": 10
+    }
+  },
+  "drift": {
+    "by_depth": [
+      {
+        "depth": 2,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "python",
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 8.291978215169138e-16,
+        "relative_error_by_level": [
+          4.163336342344337e-17,
+          1.6517620604616922e-15
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 2,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "python",
+        "scale": 0.001,
+        "refresh_every": 250,
+        "relative_error": 6.808789643208968e-17,
+        "relative_error_by_level": [
+          5.724587470723463e-17,
+          1.3563108969272263e-16
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 78
+      },
+      {
+        "depth": 3,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "python",
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 5.412614800803794e-13,
+        "relative_error_by_level": [
+          4.163336342344337e-17,
+          1.6517620604616922e-15,
+          3.228096483507522e-12
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 3,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "python",
+        "scale": 0.001,
+        "refresh_every": 250,
+        "relative_error": 6.938893903907228e-15,
+        "relative_error_by_level": [
+          5.724587470723463e-17,
+          1.3563108969272263e-16,
+          4.1383730110090784e-14
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 78
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "python",
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 4.2328182625617217e-11,
+        "relative_error_by_level": [
+          4.163336342344337e-17,
+          1.6517620604616922e-15,
+          3.228096483507522e-12,
+          1.0077494372268428e-09
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "python",
+        "scale": 0.001,
+        "refresh_every": 250,
+        "relative_error": 6.938893903907228e-15,
+        "relative_error_by_level": [
+          5.724587470723463e-17,
+          1.3563108969272263e-16,
+          4.1383730110090784e-14,
+          1.4702906512084654e-13
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 78
+      },
+      {
+        "depth": 5,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "python",
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 1.6559541602539918e-09,
+        "relative_error_by_level": [
+          4.163336342344337e-17,
+          1.6517620604616922e-15,
+          3.228096483507522e-12,
+          1.0077494372268428e-09,
+          1.9672870291731947e-07
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 5,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "python",
+        "scale": 0.001,
+        "refresh_every": 250,
+        "relative_error": 6.938893903907228e-15,
+        "relative_error_by_level": [
+          5.724587470723463e-17,
+          1.3563108969272263e-16,
+          4.1383730110090784e-14,
+          1.4702906512084654e-13,
+          3.563236653146012e-13
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 78
+      }
+    ],
+    "by_ticks": [
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 2500,
+        "engine": "python",
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 4.3998138465894954e-13,
+        "relative_error_by_level": [
+          3.469446951953614e-17,
+          2.8681224062410135e-16,
+          3.3123537580116665e-13,
+          1.0475077484474872e-11
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 5000,
+        "engine": "python",
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 2.2439550217967508e-12,
+        "relative_error_by_level": [
+          3.469446951953614e-17,
+          9.8310942719948e-16,
+          7.450726769020746e-13,
+          5.3424084619438564e-11
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 10000,
+        "engine": "python",
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 1.0031891983786068e-11,
+        "relative_error_by_level": [
+          4.163336342344337e-17,
+          1.6517620604616922e-15,
+          1.5727472791038902e-12,
+          2.388392998205996e-10
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "python",
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 4.2328182625617217e-11,
+        "relative_error_by_level": [
+          4.163336342344337e-17,
+          1.6517620604616922e-15,
+          3.228096483507522e-12,
+          1.0077494372268428e-09
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 40000,
+        "engine": "python",
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 1.7380151484669426e-10,
+        "relative_error_by_level": [
+          4.163336342344337e-17,
+          5.696505767094351e-15,
+          6.538794892314784e-12,
+          4.1378667334970405e-09
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      }
+    ],
+    "by_scale": [
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "python",
+        "scale": 0.0001,
+        "refresh_every": null,
+        "relative_error": 4.2328182625617217e-11,
+        "relative_error_by_level": [
+          1.0083080204115191e-17,
+          9.705829889794514e-16,
+          3.228096483507522e-12,
+          1.0077494372268428e-09
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "python",
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 4.2328182625617217e-11,
+        "relative_error_by_level": [
+          4.163336342344337e-17,
+          1.6517620604616922e-15,
+          3.228096483507522e-12,
+          1.0077494372268428e-09
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "python",
+        "scale": 0.01,
+        "refresh_every": null,
+        "relative_error": 1.8447619300199225e-10,
+        "relative_error_by_level": [
+          9.992007221626409e-16,
+          1.288236184393554e-13,
+          2.8499319577615123e-11,
+          4.392009487480265e-09
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "python",
+        "scale": 0.1,
+        "refresh_every": null,
+        "relative_error": 1.3364634681228202e-09,
+        "relative_error_by_level": [
+          8.881784197001252e-15,
+          4.365384570068166e-13,
+          5.946051645469742e-11,
+          1.649904354937033e-09
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "python",
+        "scale": 1.0,
+        "refresh_every": null,
+        "relative_error": 6.336274561359525e-12,
+        "relative_error_by_level": [
+          2.842170943040401e-14,
+          3.7952024743756363e-14,
+          1.1047879165529663e-12,
+          6.336274561359525e-12
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      }
+    ],
+    "compiled_by_depth": [
+      {
+        "depth": 2,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "numba",
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 5.551115123125783e-15,
+        "relative_error_by_level": [
+          5.551115123125783e-15,
+          2.4050761382454766e-15
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 2,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "numba",
+        "scale": 0.001,
+        "refresh_every": 250,
+        "relative_error": 5.551115123125783e-15,
+        "relative_error_by_level": [
+          5.551115123125783e-15,
+          2.2115642650533116e-15
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 78
+      },
+      {
+        "depth": 3,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "numba",
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 5.251528378824588e-14,
+        "relative_error_by_level": [
+          5.551115123125783e-15,
+          2.4050761382454766e-15,
+          3.132024154056946e-13
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 3,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "numba",
+        "scale": 0.001,
+        "refresh_every": 250,
+        "relative_error": 5.551115123125783e-15,
+        "relative_error_by_level": [
+          5.551115123125783e-15,
+          2.2115642650533116e-15,
+          9.932095226421789e-16
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 78
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "numba",
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 3.90288691122509e-12,
+        "relative_error_by_level": [
+          5.551115123125783e-15,
+          2.4050761382454766e-15,
+          3.132024154056946e-13,
+          9.291993760126012e-11
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 4,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "numba",
+        "scale": 0.001,
+        "refresh_every": 250,
+        "relative_error": 5.551115123125783e-15,
+        "relative_error_by_level": [
+          5.551115123125783e-15,
+          2.2115642650533116e-15,
+          9.932095226421789e-16,
+          2.545130937660721e-15
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 78
+      },
+      {
+        "depth": 5,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "numba",
+        "scale": 0.001,
+        "refresh_every": null,
+        "relative_error": 2.2675441643175802e-10,
+        "relative_error_by_level": [
+          5.551115123125783e-15,
+          2.4050761382454766e-15,
+          3.132024154056946e-13,
+          9.291993760126012e-11,
+          2.6938609350485453e-08
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 0
+      },
+      {
+        "depth": 5,
+        "window": 250,
+        "ticks": 20000,
+        "engine": "numba",
+        "scale": 0.001,
+        "refresh_every": 250,
+        "relative_error": 5.551115123125783e-15,
+        "relative_error_by_level": [
+          5.551115123125783e-15,
+          2.2115642650533116e-15,
+          9.932095226421789e-16,
+          2.545130937660721e-15,
+          6.818567102585202e-15
+        ],
+        "warmup_recomputes": 249,
+        "steady_recomputes": 78
+      }
+    ]
+  },
+  "nested_windows": {
+    "depth": 3,
+    "segments": 200,
+    "windows": [
+      600,
+      300,
+      150
+    ],
+    "chen_ms": 64.28229814999213,
+    "naive_numpy_ms": 100.61059010498866,
+    "max_abs_difference_vs_numpy": 3.1086244689504383e-15,
+    "naive_iisignature_ms": 0.7972277699991537,
+    "max_abs_difference_vs_iisignature": 4.163336342344337e-15,
+    "speedup_vs_numpy": 1.5651367950509556
+  },
+  "crossover_window_compiled": {
+    "iisignature": {
+      "streaming_compiled": {
+        "2": 10,
+        "3": 10
+      },
+      "streaming_compiled_refresh": {
+        "2": 10,
+        "3": 10
+      }
+    },
+    "roughpy": {
+      "streaming_compiled": {
+        "2": 10,
+        "3": 10
+      },
+      "streaming_compiled_refresh": {
+        "2": 10,
+        "3": 10
+      }
+    }
+  },
+  "compiled_warmup": {
+    "cold_seconds": 8.192,
+    "warm_seconds": 1.493
+  }
+}

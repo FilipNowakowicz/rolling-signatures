@@ -38,8 +38,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import platform
+import statistics
+import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -50,6 +54,14 @@ from rollsig.preprocessing import preprocess_path
 from rollsig.streaming import StreamingSignature, nested_suffix_signatures
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
+
+
+def _numba_version() -> str | None:
+    try:
+        import numba
+    except ImportError:
+        return None
+    return numba.__version__
 
 # One channel, time-augmented and lead-lagged: the shape `benchmarks/orvp`
 # feeds its signature arm, and the smallest configuration that exercises both
@@ -100,8 +112,30 @@ def _batch_step(X: np.ndarray, window: int, depth: int, backend: str, offset: in
     return step
 
 
-def cost_by_window(backends: tuple[str, ...], budget: float, seed: int = 0) -> list[dict]:
-    """Study 1 + 2: per-tick cost against window length, streaming vs recompute."""
+def cost_by_window(
+    backends: tuple[str, ...], budget: float, seed: int = 0, repeats: int = 1, compiled: bool = False
+) -> list[dict]:
+    """Study 1 + 2: per-tick cost against window length, streaming vs recompute.
+
+    Every cell is timed `repeats` times and the median is reported, because the
+    machine is shared; the individual repeats are kept in `<column>_repeats`.
+    With `compiled`, the compiled engine is measured as `streaming_compiled`
+    (re-anchoring off) and `streaming_compiled_refresh` (the default).
+    """
+    arms = [
+        ("streaming", None, "python"),
+        ("streaming_refresh", "auto", "python"),
+    ]
+    if compiled:
+        arms += [("streaming_compiled", None, "numba"), ("streaming_compiled_refresh", "auto", "numba")]
+
+    def median_cell(make_step, max_ticks):
+        samples = []
+        for _ in range(repeats):
+            micros, ticks = _time_ticks(make_step(), max_ticks, budget)
+            samples.append(micros)
+        return statistics.median(samples), ticks, samples
+
     rows = []
     for depth in DEPTHS:
         for window in WINDOWS:
@@ -109,27 +143,33 @@ def cost_by_window(backends: tuple[str, ...], budget: float, seed: int = 0) -> l
             X = random_walk(window + max_ticks + 2, seed=seed)
             row = {"depth": depth, "window": window}
 
-            for label, refresh in (("streaming", None), ("streaming_refresh", "auto")):
-                engine = StreamingSignature(window, depth, DIM, refresh_every=refresh, **PREPROCESS)
-                for point in X[: window + 1]:  # warm past the fill: measure the steady state
-                    engine.update(point)
-                offset = window + 1
-                micros, ticks = _time_ticks(
-                    lambda tick: engine.update(X[offset + tick]), max_ticks, budget
-                )
-                row[label] = round(micros, 2)
-                row[f"{label}_ticks"] = ticks
+            for label, refresh, engine_name in arms:
+
+                def make_step(refresh=refresh, engine_name=engine_name):
+                    engine = StreamingSignature(
+                        window, depth, DIM, refresh_every=refresh, engine=engine_name, **PREPROCESS
+                    )
+                    for point in X[: window + 1]:  # warm past the fill: measure the steady state
+                        engine.update(point)
+                    offset = window + 1
+                    return lambda tick: engine.update(X[offset + tick])
+
+                row[label], row[f"{label}_ticks"], samples = median_cell(make_step, max_ticks)
+                row[label] = round(row[label], 2)
+                row[f"{label}_repeats"] = [round(x, 2) for x in samples]
 
             for backend in backends:
-                micros, ticks = _time_ticks(
-                    _batch_step(X, window, depth, backend, window + 1), max_ticks, budget
+                row[f"batch_{backend}"], row[f"batch_{backend}_ticks"], samples = median_cell(
+                    lambda backend=backend: _batch_step(X, window, depth, backend, window + 1), max_ticks
                 )
-                row[f"batch_{backend}"] = round(micros, 2)
-                row[f"batch_{backend}_ticks"] = ticks
+                row[f"batch_{backend}"] = round(row[f"batch_{backend}"], 2)
+                row[f"batch_{backend}_repeats"] = [round(x, 2) for x in samples]
 
             rows.append(row)
             print(f"  depth={depth} window={window:5d}  " + "  ".join(
-                f"{k}={row[k]:.1f}us" for k in row if not k.endswith("_ticks") and k not in ("depth", "window")
+                f"{k}={row[k]:.1f}us"
+                for k in row
+                if k not in ("depth", "window") and not k.endswith(("_ticks", "_repeats"))
             ))
     return rows
 
@@ -142,6 +182,7 @@ def drift(
     refresh_every="auto",
     checkpoint: int = 250,
     seed: int = 0,
+    engine_name: str = "python",
 ) -> dict:
     """Study 3: worst relative disagreement with a from-scratch signature.
 
@@ -150,7 +191,9 @@ def drift(
     has a large signature, and both grow together.
     """
     X = random_walk(ticks, scale=scale, seed=seed)
-    engine = StreamingSignature(window, depth, DIM, refresh_every=refresh_every, **PREPROCESS)
+    engine = StreamingSignature(
+        window, depth, DIM, refresh_every=refresh_every, engine=engine_name, **PREPROCESS
+    )
     channels = engine.n_channels
     sizes = [channels**level for level in range(1, depth + 1)]
 
@@ -172,6 +215,7 @@ def drift(
         "depth": depth,
         "window": window,
         "ticks": ticks,
+        "engine": engine_name,
         "scale": scale,
         "refresh_every": refresh_every if refresh_every != "auto" else window,
         "relative_error": worst_overall,
@@ -189,7 +233,7 @@ def _relative(streamed: np.ndarray, exact: np.ndarray) -> float:
     return float(np.max(np.abs(streamed - exact)) / scale) if scale else 0.0
 
 
-def drift_study(seed: int = 0) -> dict:
+def drift_study(seed: int = 0, compiled: bool = False) -> dict:
     """Drift by depth, by refresh setting, by tick count, and by path scale."""
     by_depth = []
     for depth in DRIFT_DEPTHS:
@@ -207,7 +251,16 @@ def drift_study(seed: int = 0) -> dict:
         print(f"  drift scale={scale}")
         by_scale.append(drift(4, scale=scale, refresh_every=None, seed=seed))
 
-    return {"by_depth": by_depth, "by_ticks": by_ticks, "by_scale": by_scale}
+    results = {"by_depth": by_depth, "by_ticks": by_ticks, "by_scale": by_scale}
+    if compiled:
+        results["compiled_by_depth"] = []
+        for depth in DRIFT_DEPTHS:
+            for refresh in (None, "auto"):
+                print(f"  compiled drift depth={depth} refresh={refresh}")
+                results["compiled_by_depth"].append(
+                    drift(depth, refresh_every=refresh, seed=seed, engine_name="numba")
+                )
+    return results
 
 
 def nested_windows(depth: int = 3, segments: int = 200, seed: int = 0) -> dict:
@@ -247,27 +300,58 @@ def nested_windows(depth: int = 3, segments: int = 200, seed: int = 0) -> dict:
     return results
 
 
-def crossover(rows: list[dict], reference: str) -> dict[int, int | None]:
-    """Smallest window at which streaming beats a given batch arm, per depth."""
+def crossover(rows: list[dict], reference: str, arm: str = "streaming") -> dict[int, int | None]:
+    """Smallest window at which a streaming arm beats a given batch arm, per depth.
+
+    Measured over the windows in `WINDOWS`, so a value of 10 means "at every
+    window measured", not "at window 10 and nowhere below".
+    """
     out: dict[int, int | None] = {}
     for depth in DEPTHS:
         beat = [
             row["window"]
             for row in rows
-            if row["depth"] == depth
-            and f"batch_{reference}" in row
-            and row["streaming"] < row[f"batch_{reference}"]
+            if row["depth"] == depth and f"batch_{reference}" in row and row[arm] < row[f"batch_{reference}"]
         ]
         out[depth] = min(beat) if beat else None
     return out
 
 
+def warmup_cost() -> dict:
+    """Seconds for a fresh process to get its first compiled update, cold and warm.
+
+    "cold" points Numba's on-disk cache at an empty directory, so everything is
+    compiled; "warm" reruns against the cache the cold run just wrote. Each is
+    a new interpreter, so imports are included, and `import numpy` alone is
+    reported for scale.
+    """
+    code = (
+        "import time; t = time.perf_counter()\n"
+        "import numpy as np\n"
+        "from rollsig.streaming import StreamingSignature\n"
+        "e = StreamingSignature(50, 3, 1, time_augmentation=True, lead_lag_transform=True, engine='numba')\n"
+        "e.extend(np.arange(120.0)[:, None] % 7)\n"
+        "e.update([1.0])\n"
+        "print(time.perf_counter() - t)\n"
+    )
+    out = {}
+    with tempfile.TemporaryDirectory() as cache:
+        env = {**os.environ, "NUMBA_CACHE_DIR": cache}
+        for label in ("cold", "warm"):
+            run = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, check=True)
+            out[f"{label}_seconds"] = round(float(run.stdout.strip().splitlines()[-1]), 3)
+    return out
+
+
 def markdown_table(results: dict) -> str:
     rows = results["cost_by_window"]
-    backends = [key[len("batch_") :] for key in rows[0] if key.startswith("batch_") and not key.endswith("_ticks")]
+    backends = [key[len("batch_") :] for key in rows[0] if key.startswith("batch_") and not key.endswith(("_ticks", "_repeats"))]
 
     lines = ["### Per-tick cost (microseconds), 1 channel + time augmentation + lead-lag", ""]
+    compiled = "streaming_compiled" in rows[0]
     header = ["depth", "window", "streaming", "streaming (auto refresh)"]
+    if compiled:
+        header += ["compiled", "compiled (auto refresh)"]
     header += [f"batch `{backend}`" for backend in backends]
     header += ["x vs numpy"]
     lines.append("| " + " | ".join(header) + " |")
@@ -279,6 +363,8 @@ def markdown_table(results: dict) -> str:
             f"{row['streaming']:.1f}",
             f"{row['streaming_refresh']:.1f}",
         ]
+        if compiled:
+            cells += [f"{row['streaming_compiled']:.1f}", f"{row['streaming_compiled_refresh']:.1f}"]
         cells += [f"{row[f'batch_{backend}']:.1f}" for backend in backends]
         cells += [f"{row['batch_numpy'] / row['streaming']:.0f}x"]
         lines.append("| " + " | ".join(cells) + " |")
@@ -292,6 +378,17 @@ def markdown_table(results: dict) -> str:
             f"| {row['depth']} | {row['refresh_every'] or 'never'} | {row['relative_error']:.2e} "
             f"| {max(row['relative_error_by_level']):.2e} (level {worst_level}) | {row['steady_recomputes']} |"
         )
+
+    if "compiled_by_depth" in results["drift"]:
+        lines += ["", "### Compiled engine drift (relative, infinity norm)", ""]
+        lines.append("| depth | refresh every | relative error | worst level | re-anchors |")
+        lines.append("| --- | ---: | ---: | ---: | ---: |")
+        for row in results["drift"]["compiled_by_depth"]:
+            worst_level = int(np.argmax(row["relative_error_by_level"])) + 1
+            lines.append(
+                f"| {row['depth']} | {row['refresh_every'] or 'never'} | {row['relative_error']:.2e} "
+                f"| {max(row['relative_error_by_level']):.2e} (level {worst_level}) | {row['steady_recomputes']} |"
+            )
 
     nested = results["nested_windows"]
     lines += ["", "### Nested 600/300/150 windows, per ORVP segment (milliseconds)", ""]
@@ -311,6 +408,8 @@ def main() -> None:
     parser.add_argument("--budget", type=float, default=1.0, help="seconds per timed cell")
     parser.add_argument("--segments", type=int, default=200, help="synthetic segments for the nested-window study")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--repeats", type=int, default=1, help="timings per cell; the median is reported")
+    parser.add_argument("--compiled", action="store_true", help="also measure the compiled (Numba) engine")
     parser.add_argument("--skip-roughpy", action="store_true", help="omit the (very slow) default backend")
     parser.add_argument("--out", type=Path, default=RESULTS_DIR / "streaming.json")
     args = parser.parse_args()
@@ -327,9 +426,11 @@ def main() -> None:
         backends.append(name)
 
     print("study 1+2: per-tick cost vs window")
-    rows = cost_by_window(tuple(backends), budget=args.budget, seed=args.seed)
+    rows = cost_by_window(
+        tuple(backends), budget=args.budget, seed=args.seed, repeats=args.repeats, compiled=args.compiled
+    )
     print("study 3: numerical drift")
-    drift_results = drift_study(seed=args.seed)
+    drift_results = drift_study(seed=args.seed, compiled=args.compiled)
     print("study 4: nested suffix windows")
     nested = nested_windows(segments=args.segments, seed=args.seed)
 
@@ -341,6 +442,10 @@ def main() -> None:
             "depths": list(DEPTHS),
             "backends": backends,
             "budget_seconds": args.budget,
+            "repeats": args.repeats,
+            "numba": _numba_version() if args.compiled else None,
+            "machine_load_average_at_start": os.getloadavg(),
+            "cpu_count": os.cpu_count(),
             "seed": args.seed,
             "python": sys.version.split()[0],
             "platform": platform.platform(),
@@ -353,10 +458,21 @@ def main() -> None:
         "drift": drift_results,
         "nested_windows": nested,
     }
+    if args.compiled:
+        results["crossover_window_compiled"] = {
+            backend: {
+                arm: crossover(rows, backend, arm)
+                for arm in ("streaming_compiled", "streaming_compiled_refresh")
+            }
+            for backend in backends
+            if backend != "numpy"
+        }
+        print("warm-up cost of the compiled engine")
+        results["compiled_warmup"] = warmup_cost()
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(results, indent=2, default=float))
-    (args.out.parent / "streaming_table.md").write_text(markdown_table(results) + "\n")
+    (args.out.parent / f"{args.out.stem}_table.md").write_text(markdown_table(results) + "\n")
     print(f"\nwrote {args.out}\n")
     print(markdown_table(results))
 
