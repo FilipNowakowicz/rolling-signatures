@@ -7,7 +7,11 @@ that do not depend on the numpy code at all: Chen's identity, the shuffle
 identity, the group laws, and agreement with every batch backend.
 """
 
+import copy
 import itertools
+import pickle
+import subprocess
+import sys
 
 import numpy as np
 import pytest
@@ -209,3 +213,32 @@ def test_engine_selection_and_fallback(monkeypatch):
     fallback.extend(np.arange(8.0)[:, None])
     with pytest.raises(ImportError, match="Numba"):
         StreamingSignature(5, 2, 1, engine="numba")
+
+
+@pytest.mark.parametrize("clone", [lambda s: pickle.loads(pickle.dumps(s)), copy.deepcopy])
+def test_a_compiled_stream_survives_pickling_and_deepcopy(series, clone):
+    original = StreamingSignature(10, 3, 2, engine="numba", time_augmentation=True)
+    original.extend(series[:30])
+    restored = clone(original)
+    assert restored.extend(series[30:]) == pytest.approx(original.extend(series[30:]), abs=0)
+    assert restored.n_updates_ == original.n_updates_ and restored.n_recomputes_ == original.n_recomputes_
+
+
+def test_resuming_a_compiled_stream_without_numba_says_why(series, monkeypatch):
+    payload = pickle.dumps(StreamingSignature(10, 2, 2, engine="numba"))
+    monkeypatch.setattr(streaming_module, "_load_compiled", lambda: None)
+    with pytest.raises(ImportError, match="Numba"):
+        pickle.loads(payload)
+
+
+def test_an_unusable_numba_cache_falls_back_to_numpy():
+    """`cache=True` raises RuntimeError at import when nothing is writable."""
+    code = (
+        "import numba\n"
+        "def njit(*a, **k):\n"
+        "    raise RuntimeError('cannot cache function: no locator available')\n"
+        "numba.njit = njit\n"
+        "from rollsig.streaming import StreamingSignature\n"
+        "assert StreamingSignature(5, 2, 1)._kernel is None\n"
+    )
+    subprocess.run([sys.executable, "-c", code], check=True)

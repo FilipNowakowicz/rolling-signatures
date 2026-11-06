@@ -79,10 +79,15 @@ Engine = Literal["auto", "python", "numba"]
 
 
 def _load_compiled():
-    """The Numba kernel module, or ``None`` when Numba is not installed."""
+    """The Numba kernel module, or ``None`` when it cannot be used.
+
+    Besides a missing Numba, that covers `RuntimeError`: `cache=True` raises it
+    at import when neither the package directory nor the user's home is
+    writable, as in a read-only container.
+    """
     try:
         from rollsig import _compiled
-    except ImportError:
+    except (ImportError, RuntimeError):
         return None
     return _compiled
 
@@ -229,7 +234,10 @@ class StreamingSignature:
             raise ValueError("engine must be 'auto', 'python' or 'numba'")
         kernel = None if engine == "python" or window == 1 else _load_compiled()
         if engine == "numba" and kernel is None and window > 1:
-            raise ImportError("engine='numba' needs Numba; install it with `pip install rollsig[compiled]`")
+            raise ImportError(
+                "engine='numba' needs Numba (the `compiled` extra) and a writable cache directory; "
+                "set NUMBA_CACHE_DIR if the install is read-only"
+            )
 
         self.window = window
         self.depth = depth
@@ -258,6 +266,17 @@ class StreamingSignature:
                 time_augmentation, lead_lag_transform, refresh_every or 0,
             )  # fmt: skip
         self.reset()
+
+    def __getstate__(self) -> dict:
+        # A module cannot be pickled or deep-copied; the arrays hold the state.
+        return {**self.__dict__, "_kernel": None}
+
+    def __setstate__(self, state: dict) -> None:
+        self.__dict__.update(state)
+        if "_ring" in state:
+            self._kernel = _load_compiled()
+            if self._kernel is None:
+                raise ImportError("this stream was saved by the compiled engine, which needs Numba to resume")
 
     @property
     def n_channels(self) -> int:

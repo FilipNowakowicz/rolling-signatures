@@ -387,7 +387,7 @@ shared machine at load about 2.7), re-anchoring on:
 Per-tick cost is 2.6–3.2 µs at depth 2 and 3.5–3.9 µs at depth 3 without
 re-anchoring, and 2.7–3.3 and 3.8–4.3 µs with it, flat across windows 10 to
 1200. It beats `iisignature` at every window measured, so there is no
-crossover inside the measured range: the ratio is 5.6× at depth 2 and 5.7× at
+crossover inside the measured range: the ratio is 5.7× at depth 2 and 5.7× at
 depth 3 at window 10, and at window 1200 it is **71×** at depth 2 and **156×**
 at depth 3, against RoughPy 3,800× and 6,200×. A second run taken under heavier
 machine load (load 5–7) gave the same picture with noisier cells
@@ -398,7 +398,7 @@ compilation (about 6 s in a fresh process with an empty cache, about 1.4 s
 with Numba's on-disk cache, which includes imports); a single `update` call
 carries about 1 µs of Python overhead, which is part of the figure; the
 absolute numbers depend on this machine, and the batch columns here differ
-from the committed table by up to about 25% because the environment does.
+from the committed table by up to about 30% because the environment does.
 Re-anchored drift stays at 5.6e-15 at depths 2 to 5, as before.
 
 **The numerical price is quantified, not waved away.** Repeated group

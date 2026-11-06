@@ -206,7 +206,7 @@ re-anchoring:
 - **Flat in the window:** 2.7 to 3.3 µs at depth 2 and 3.8 to 4.3 µs at
   depth 3 across windows 10 to 1200 (with re-anchoring).
 - **Against `iisignature` there is no crossover in the measured range.** The
-  compiled update is faster at every window, down to 10: 5.6× at depth 2 and
+  compiled update is faster at every window, down to 10: 5.7× at depth 2 and
   5.7× at depth 3 at window 10, 71× and 156× at window 1200. The recorded
   crossover is therefore 10, the smallest window measured, and means "at every
   window measured"; windows below 10 were not tried.
@@ -226,7 +226,7 @@ re-anchoring:
   `StreamingSignature.extend` runs the whole loop in compiled code and avoids
   it, but that is not what is reported here. The committed interpreted columns
   in the table above are from a different environment (Python 3.14.6); the
-  same-run interpreted and batch columns here are within about 25% of them.
+  same-run interpreted and batch columns here are within about 30% of them.
 
 `method="auto"` uses the compiled thresholds when Numba is installed (pinned to
 `streaming_compiled.json` by `tests/test_streaming.py`) and the interpreted

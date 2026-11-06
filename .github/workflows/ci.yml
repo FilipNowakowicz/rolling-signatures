@@ -31,4 +31,4 @@ jobs:
         run: uv run --locked --extra test --extra iisignature --extra compiled pytest -q
 
       - name: Run tests (pure numpy fallback, no Numba)
-        run: uv run --locked --extra test --extra iisignature pytest -q
+        run: uv run --locked --exact --extra test --extra iisignature pytest -q
