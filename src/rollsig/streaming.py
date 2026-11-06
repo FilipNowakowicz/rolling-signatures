@@ -75,6 +75,16 @@ from rollsig.algebra import (
 from rollsig.preprocessing import preprocess_path
 
 Refresh = Literal["auto"] | int | None
+Engine = Literal["auto", "python", "numba"]
+
+
+def _load_compiled():
+    """The Numba kernel module, or ``None`` when Numba is not installed."""
+    try:
+        from rollsig import _compiled
+    except ImportError:
+        return None
+    return _compiled
 
 
 class _PathEncoding:
@@ -180,6 +190,15 @@ class StreamingSignature:
         O(1) amortized; an integer sets the period explicitly; `None` never
         re-anchors, which is what `benchmarks/streaming/` uses to measure
         drift in the raw.
+    engine
+        Which implementation runs the update. `"python"` is the readable numpy
+        reference in `rollsig.algebra`. `"numba"` is the compiled kernel in
+        `rollsig._compiled` (install the `compiled` extra) and raises
+        `ImportError` if Numba is missing. `"auto"` (the default) uses the
+        compiled kernel when Numba is importable and the numpy reference
+        otherwise, so a plain install needs no compiler. The two agree to
+        floating-point noise; the first compiled call pays a one-off
+        compilation cost, cached on disk afterwards.
     """
 
     def __init__(
@@ -191,6 +210,7 @@ class StreamingSignature:
         time_augmentation: bool = False,
         lead_lag_transform: bool = False,
         refresh_every: Refresh = "auto",
+        engine: Engine = "auto",
     ):
         if not isinstance(window, int) or isinstance(window, bool) or window < 1:
             raise ValueError("window must be a positive integer")
@@ -205,9 +225,17 @@ class StreamingSignature:
         ):
             raise ValueError("refresh_every must be 'auto', a positive integer, or None")
 
+        if engine not in ("auto", "python", "numba"):
+            raise ValueError("engine must be 'auto', 'python' or 'numba'")
+        kernel = None if engine == "python" or window == 1 else _load_compiled()
+        if engine == "numba" and kernel is None and window > 1:
+            raise ImportError("engine='numba' needs Numba; install it with `pip install rollsig[compiled]`")
+
         self.window = window
         self.depth = depth
         self.dim = dim
+        self.engine = engine
+        self._kernel = kernel
         self.time_augmentation = time_augmentation
         self.lead_lag_transform = lead_lag_transform
         self.refresh_every = refresh_every
@@ -217,6 +245,18 @@ class StreamingSignature:
         # a partial window it differs, which is what `_recompute` is for.
         self._dt = 1.0 / (window - 1) if window > 1 else 0.0
         self._buffer: deque[np.ndarray] = deque(maxlen=window)
+        if kernel is not None:
+            channels = self._encoding.channels
+            self._offsets = kernel.level_offsets(channels, depth)
+            self._state = np.zeros(int(self._offsets[-1]))
+            self._ring = np.zeros((window, dim))
+            self._counters = np.zeros(4, dtype=np.int64)
+            self._work = np.zeros((2, int(self._offsets[-1])))
+            self._block_scratch = np.zeros((2, channels))
+            self._args = (
+                self._work, self._block_scratch, self._offsets, depth, channels, dim, window,
+                time_augmentation, lead_lag_transform, refresh_every or 0,
+            )  # fmt: skip
         self.reset()
 
     @property
@@ -231,12 +271,18 @@ class StreamingSignature:
     @property
     def signature(self) -> np.ndarray:
         """Current window's signature, levels 1..depth flattened."""
+        if self._kernel is not None:
+            return self._state[1:].copy()
         return from_levels(self._levels)
 
     def reset(self) -> None:
         """Forget the stream. Counters go back to zero."""
         self._buffer.clear()
         self._levels = tensor_identity(self.n_channels, self.depth)
+        if self._kernel is not None:
+            self._state[:] = 0.0
+            self._state[0] = 1.0
+            self._counters[:] = 0
         self._since_recompute = 0
         self.n_updates_ = 0
         self.n_recomputes_ = 0
@@ -246,6 +292,12 @@ class StreamingSignature:
         point = np.asarray(point, dtype=float).reshape(-1)
         if point.shape != (self.dim,):
             raise ValueError(f"expected a point with {self.dim} channels, got shape {point.shape}")
+
+        if self._kernel is not None:
+            self._kernel._step(self._state, self._ring, self._counters, point, *self._args)
+            self.n_updates_ += 1
+            self.n_recomputes_ = int(self._counters[3])
+            return self._state[1:].copy()
 
         if self.window == 1:
             # A one-point window has no increments, so its signature is the
@@ -284,6 +336,12 @@ class StreamingSignature:
         points = np.asarray(points, dtype=float)
         if points.ndim != 2:
             raise ValueError("points must be a two-dimensional array of shape (n_points, dim)")
+        if self._kernel is not None and points.shape[1] == self.dim:
+            out = np.empty((len(points), self.n_output_features))
+            self._kernel._extend(out, np.ascontiguousarray(points), self._state, self._ring, self._counters, *self._args)
+            self.n_updates_ += len(points)
+            self.n_recomputes_ = int(self._counters[3])
+            return out
         return np.array([self.update(point) for point in points])
 
     def _slide(self, departing: np.ndarray | None, arriving: np.ndarray) -> None:
@@ -316,6 +374,7 @@ def rolling_signature(
     time_augmentation: bool = False,
     lead_lag_transform: bool = False,
     refresh_every: Refresh = "auto",
+    engine: Engine = "auto",
 ) -> np.ndarray:
     """Causal rolling signatures of `X`, one row per observation.
 
@@ -326,15 +385,16 @@ def rolling_signature(
     X = np.asarray(X, dtype=float)
     if X.ndim != 2:
         raise ValueError("X must be a two-dimensional array of shape (n_samples, n_channels)")
-    engine = StreamingSignature(
+    stream = StreamingSignature(
         window=window,
         depth=depth,
         dim=X.shape[1],
         time_augmentation=time_augmentation,
         lead_lag_transform=lead_lag_transform,
         refresh_every=refresh_every,
+        engine=engine,
     )
-    return engine.extend(X)
+    return stream.extend(X)
 
 
 def suffix_signature(window_signature, prefix_signature, dim: int, depth: int) -> np.ndarray:

@@ -3,10 +3,14 @@
 Run the reproducible local checks before proposing a change:
 
 ```bash
-uv sync --extra test --extra iisignature
+uv sync --extra test --extra iisignature --extra compiled
 uv run ruff check .
 uv run pytest -q
 ```
+
+The `compiled` extra installs Numba for the optional streaming kernel; without
+it `tests/test_compiled.py` is skipped and the pure numpy engine is used. CI
+runs the suite both ways.
 
 The installable package is in `src/rollsig/`; `tests/` contains the unit and
 property tests. The code in `benchmarks/orvp/` and `benchmarks/streaming/` is
