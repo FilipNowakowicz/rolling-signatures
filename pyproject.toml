@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rollsig"
-version = "0.3.1"
+version = "0.4.0"
 description = "Causal, rolling-window path-signature features for financial time series"
 readme = "README.md"
 license = { file = "LICENSE" }
